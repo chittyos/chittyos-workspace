@@ -10,3 +10,38 @@ coverage/
 .vscode/
 .idea/
 .chittycheck/
+
+# Token Optimization - Session artifacts
+.ai-coordination/
+.chittyos/
+.op/
+*SUMMARY*.md
+*COMPLETE*.md
+*SESSION*.md
+consolidation_plan.json
+session-manifest-*.json
+
+# Backup directories
+*backup*/
+*.backup/
+.cloudflare-backup-*/
+
+# Foundation layer (tracked elsewhere)
+CHITTYFOUNDATION/
+CHITTYCORP/
+CHITTYAPPS/
+CHICAGOAPPS/
+CHITCOMMIT/
+
+# Workspace artifacts
+tmp/
+*.old
+*.bak
+risk_score.txt
+verdict.md
+fixes.md
+issues.json
+citations.json
+
+# Archive
+.archive/
