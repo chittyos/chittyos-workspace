@@ -29,6 +29,26 @@ import {
   type MemorySyncResponse,
   type AgentMemory,
 } from "./memory-sync";
+import {
+  handleCreateDirection,
+  handleClaimDirection,
+  handleCompleteDirection,
+} from "./integrations/claude-code";
+import { SessionRegistry } from "./sessions/session-registry";
+import { SessionSync } from "./sessions/session-sync";
+import { ProjectSyncOrchestrator } from "./projects/project-sync";
+import { GitIntegrationService } from "./projects/git-integration";
+import { handleTopicRequest } from "./topics/topic-routes";
+import { topicDetector } from "./topics/topic-detector";
+import { TopicRegistry } from "./topics/topic-registry";
+import type {
+  RegisterSessionRequest,
+  SessionSyncRequest,
+  ProjectConsolidationRequest,
+  ProjectConsolidationResponse,
+} from "./types";
+import { OPENAPI_YAML } from "./docs/openapi.yaml";
+import { HTML_DOCS } from "./docs/html-docs";
 
 /**
  * Main request handler
@@ -45,6 +65,36 @@ export default {
     // Health check endpoint - no auth required
     if (url.pathname === "/api/todos/health" && request.method === "GET") {
       return handleHealthCheck(env);
+    }
+
+    // Documentation endpoints - no auth required
+    if (url.pathname === "/docs" && request.method === "GET") {
+      return new Response(HTML_DOCS, {
+        headers: {
+          "Content-Type": "text/html",
+          "Access-Control-Allow-Origin": "*",
+        },
+      });
+    }
+
+    if (url.pathname === "/docs/openapi.yaml" && request.method === "GET") {
+      return new Response(OPENAPI_YAML, {
+        headers: {
+          "Content-Type": "text/yaml",
+          "Access-Control-Allow-Origin": "*",
+        },
+      });
+    }
+
+    if (url.pathname === "/docs/openapi.json" && request.method === "GET") {
+      // Convert YAML to JSON (simple string replacement for this use case)
+      const json = convertYamlToJson(OPENAPI_YAML);
+      return new Response(json, {
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+      });
     }
 
     // All other endpoints require authentication
@@ -112,6 +162,79 @@ export default {
         );
       }
 
+      // === Claude Code Directions Integration ===
+      // POST /api/directions - enqueue a direction
+      if (url.pathname === "/api/directions" && request.method === "POST") {
+        return await handleCreateDirection(request, env);
+      }
+
+      // POST /api/directions/claim - claim next direction for an agent
+      if (url.pathname === "/api/directions/claim" && request.method === "POST") {
+        return await handleClaimDirection(request, env);
+      }
+
+      // POST /api/directions/:id/complete - complete or fail a direction
+      const completeMatch = url.pathname.match(/^\/api\/directions\/([^\/]+)\/complete$/);
+      if (completeMatch && request.method === "POST") {
+        return await handleCompleteDirection(completeMatch[1], request, env);
+      }
+
+      // === Session Sync Endpoints (Tier 1) ===
+      // POST /api/sessions/register - register or update session
+      if (url.pathname === "/api/sessions/register" && request.method === "POST") {
+        return await handleRegisterSession(request, env);
+      }
+
+      // POST /api/sessions/:id/sync - sync session to project canonical state
+      const sessionSyncMatch = url.pathname.match(/^\/api\/sessions\/([^\/]+)\/sync$/);
+      if (sessionSyncMatch && request.method === "POST") {
+        return await handleSessionSync(sessionSyncMatch[1], request, env);
+      }
+
+      // GET /api/sessions/:id - get session details
+      const getSessionMatch = url.pathname.match(/^\/api\/sessions\/([^\/]+)$/);
+      if (getSessionMatch && request.method === "GET") {
+        return await handleGetSession(getSessionMatch[1], env);
+      }
+
+      // GET /api/projects/:id/sessions - get all sessions for project
+      const projectSessionsMatch = url.pathname.match(/^\/api\/projects\/([^\/]+)\/sessions$/);
+      if (projectSessionsMatch && request.method === "GET") {
+        return await handleGetProjectSessions(projectSessionsMatch[1], env);
+      }
+
+      // GET /api/projects/:id/canonical - get project canonical state
+      const projectCanonicalMatch = url.pathname.match(/^\/api\/projects\/([^\/]+)\/canonical$/);
+      if (projectCanonicalMatch && request.method === "GET") {
+        return await handleGetProjectCanonical(projectCanonicalMatch[1], env);
+      }
+
+      // POST /api/sessions/:id/end - end a session
+      const endSessionMatch = url.pathname.match(/^\/api\/sessions\/([^\/]+)\/end$/);
+      if (endSessionMatch && request.method === "POST") {
+        return await handleEndSession(endSessionMatch[1], env);
+      }
+
+      // === Project Sync Endpoints (Tier 2) ===
+      // POST /api/projects/:id/consolidate - consolidate all sessions into canonical state
+      const consolidateMatch = url.pathname.match(/^\/api\/projects\/([^\/]+)\/consolidate$/);
+      if (consolidateMatch && request.method === "POST") {
+        return await handleProjectConsolidate(consolidateMatch[1], request, env);
+      }
+
+      // GET /api/projects/:id/canonical-state - get canonical project state
+      const canonicalStateMatch = url.pathname.match(/^\/api\/projects\/([^\/]+)\/canonical-state$/);
+      if (canonicalStateMatch && request.method === "GET") {
+        return await handleGetCanonicalState(canonicalStateMatch[1], env);
+      }
+
+      // === Topic Sync Endpoints (Tier 3) ===
+      // Try topic routes handler
+      const topicResponse = await handleTopicRequest(request, env, url.pathname);
+      if (topicResponse) {
+        return topicResponse;
+      }
+
       // No matching route
       return jsonResponse<ApiResponse>(
         {
@@ -135,6 +258,67 @@ export default {
     }
   },
 };
+
+/**
+ * Simple YAML to JSON converter for OpenAPI spec
+ */
+function convertYamlToJson(yaml: string): string {
+  // For OpenAPI spec, we can use a simple heuristic conversion
+  // This is a minimal implementation that handles the basic structure
+  try {
+    // Parse YAML manually (basic implementation)
+    const lines = yaml.split('\n');
+    const result: any = {};
+    let current: any = result;
+    const stack: any[] = [result];
+    let lastIndent = 0;
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+
+      const indent = line.search(/\S/);
+      const [key, ...valueParts] = trimmed.split(':');
+      const value = valueParts.join(':').trim();
+
+      if (indent < lastIndent) {
+        stack.pop();
+        current = stack[stack.length - 1];
+      }
+
+      if (value) {
+        current[key] = value;
+      } else {
+        current[key] = {};
+        stack.push(current[key]);
+        current = current[key];
+      }
+
+      lastIndent = indent;
+    }
+
+    return JSON.stringify(result, null, 2);
+  } catch (e) {
+    // Fallback: return a basic JSON structure
+    return JSON.stringify({
+      openapi: "3.0.3",
+      info: {
+        title: "ChittySync Hub API",
+        version: "2.2.0",
+        description: "See /docs/openapi.yaml for full specification"
+      },
+      servers: [
+        { url: "https://sync.chitty.cc", description: "Production" },
+        { url: "https://gateway.chitty.cc/api/todos", description: "Gateway" }
+      ],
+      paths: {
+        "/docs/openapi.yaml": {
+          description: "Download full OpenAPI YAML specification"
+        }
+      }
+    }, null, 2);
+  }
+}
 
 /**
  * Health check endpoint
@@ -244,10 +428,16 @@ async function handleCreateTodo(request: Request, env: Env): Promise<Response> {
       metadata: body.metadata,
     };
 
-    // Insert into database
+    // Auto-detect topics (Tier 3 integration)
+    const projectId = body.metadata?.project_id as string | undefined;
+    const topicDetection = await topicDetector.detectTopics(todo, projectId);
+    const topics = topicDetection.topics;
+    const primaryTopic = topicDetection.primary_topic;
+
+    // Insert into database with topic information
     await env.DB.prepare(
-      `INSERT INTO todos (id, content, status, active_form, platform, session_id, agent_id, created_at, updated_at, metadata)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO todos (id, content, status, active_form, platform, session_id, agent_id, created_at, updated_at, metadata, primary_topic, topics, project_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
       .bind(
         todo.id,
@@ -260,8 +450,19 @@ async function handleCreateTodo(request: Request, env: Env): Promise<Response> {
         todo.created_at,
         todo.updated_at,
         todo.metadata ? JSON.stringify(todo.metadata) : null,
+        primaryTopic,
+        JSON.stringify(topics),
+        projectId || null,
       )
       .run();
+
+    // Update topic registry and associations
+    if (projectId) {
+      const topicRegistry = new TopicRegistry(env, env.DB);
+      for (const topicId of topics) {
+        await topicRegistry.associateProjectWithTopic(projectId, topicId);
+      }
+    }
 
     // Log sync action
     await logSyncAction(env, todo.id, "create", platform, false);
@@ -751,8 +952,13 @@ async function logSyncAction(
   conflictDetected: boolean,
 ): Promise<void> {
   try {
-    const logId = `sync_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-    const timestamp = Date.now();
+    const now = Date.now();
+    const rand =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? (crypto as any).randomUUID()
+        : Math.random().toString(36).slice(2, 10);
+    const logId = `sync_${now}_${rand}`;
+    const timestamp = now;
 
     await env.DB.prepare(
       `INSERT INTO sync_log (id, todo_id, action, platform, timestamp, conflict_detected)
@@ -855,6 +1061,340 @@ async function handleMemoryPull(
       {
         success: false,
         error: error instanceof Error ? error.message : "Memory pull failed",
+        timestamp: Date.now(),
+      },
+      500,
+    );
+  }
+}
+
+/**
+ * POST /api/sessions/register - Register or update session
+ */
+async function handleRegisterSession(
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  try {
+    const body = (await request.json()) as RegisterSessionRequest;
+
+    if (!body.session_id || !body.project_id || !body.project_path) {
+      return jsonResponse<ApiResponse>(
+        {
+          success: false,
+          error: "Missing required fields: session_id, project_id, project_path",
+          timestamp: Date.now(),
+        },
+        400,
+      );
+    }
+
+    const registry = new SessionRegistry(env, env.DB);
+    const bearerToken = extractBearerToken(request);
+    const session = await registry.registerSession(body, bearerToken || undefined);
+
+    return jsonResponse<ApiResponse>(
+      {
+        success: true,
+        data: session,
+        timestamp: Date.now(),
+      },
+      201,
+    );
+  } catch (error) {
+    console.error("Register session error:", error);
+    return jsonResponse<ApiResponse>(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to register session",
+        timestamp: Date.now(),
+      },
+      500,
+    );
+  }
+}
+
+/**
+ * POST /api/sessions/:id/sync - Sync session to project canonical state
+ */
+async function handleSessionSync(
+  sessionId: string,
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  try {
+    const body = (await request.json()) as Partial<SessionSyncRequest>;
+
+    const syncRequest: SessionSyncRequest = {
+      session_id: sessionId,
+      project_id: body.project_id || "",
+      todos: body.todos,
+      strategy: body.strategy || "timestamp",
+    };
+
+    if (!syncRequest.project_id) {
+      return jsonResponse<ApiResponse>(
+        {
+          success: false,
+          error: "Missing required field: project_id",
+          timestamp: Date.now(),
+        },
+        400,
+      );
+    }
+
+    const sessionSync = new SessionSync(env, env.DB);
+    const bearerToken = extractBearerToken(request);
+    const result = await sessionSync.syncSession(syncRequest, bearerToken || undefined);
+
+    return jsonResponse<ApiResponse>(
+      {
+        success: true,
+        data: result,
+        timestamp: Date.now(),
+      },
+    );
+  } catch (error) {
+    console.error("Session sync error:", error);
+    return jsonResponse<ApiResponse>(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to sync session",
+        timestamp: Date.now(),
+      },
+      500,
+    );
+  }
+}
+
+/**
+ * GET /api/sessions/:id - Get session details
+ */
+async function handleGetSession(
+  sessionId: string,
+  env: Env,
+): Promise<Response> {
+  try {
+    const registry = new SessionRegistry(env, env.DB);
+    const session = await registry.getSessionBySessionId(sessionId);
+
+    if (!session) {
+      return jsonResponse<ApiResponse>(
+        {
+          success: false,
+          error: "Session not found",
+          timestamp: Date.now(),
+        },
+        404,
+      );
+    }
+
+    return jsonResponse<ApiResponse>(
+      {
+        success: true,
+        data: session,
+        timestamp: Date.now(),
+      },
+    );
+  } catch (error) {
+    console.error("Get session error:", error);
+    return jsonResponse<ApiResponse>(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to get session",
+        timestamp: Date.now(),
+      },
+      500,
+    );
+  }
+}
+
+/**
+ * GET /api/projects/:id/sessions - Get all sessions for project
+ */
+async function handleGetProjectSessions(
+  projectId: string,
+  env: Env,
+): Promise<Response> {
+  try {
+    const registry = new SessionRegistry(env, env.DB);
+    const sessions = await registry.getActiveSessionsForProject(projectId);
+
+    return jsonResponse<ApiResponse>(
+      {
+        success: true,
+        data: {
+          project_id: projectId,
+          sessions,
+          total: sessions.length,
+        },
+        timestamp: Date.now(),
+      },
+    );
+  } catch (error) {
+    console.error("Get project sessions error:", error);
+    return jsonResponse<ApiResponse>(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to get project sessions",
+        timestamp: Date.now(),
+      },
+      500,
+    );
+  }
+}
+
+/**
+ * GET /api/projects/:id/canonical - Get project canonical state
+ */
+async function handleGetProjectCanonical(
+  projectId: string,
+  env: Env,
+): Promise<Response> {
+  try {
+    const result = await env.DB.prepare(
+      "SELECT * FROM project_states WHERE project_id = ?",
+    )
+      .bind(projectId)
+      .first();
+
+    if (!result) {
+      return jsonResponse<ApiResponse>(
+        {
+          success: false,
+          error: "Project state not found",
+          timestamp: Date.now(),
+        },
+        404,
+      );
+    }
+
+    const r = result as Record<string, unknown>;
+    const state = {
+      project_id: r.project_id as string,
+      canonical_todos: JSON.parse(r.canonical_state as string),
+      last_consolidated: r.last_consolidated as number,
+      contributing_sessions: JSON.parse(r.contributing_sessions as string),
+      metadata: r.metadata ? JSON.parse(r.metadata as string) : undefined,
+    };
+
+    return jsonResponse<ApiResponse>(
+      {
+        success: true,
+        data: state,
+        timestamp: Date.now(),
+      },
+    );
+  } catch (error) {
+    console.error("Get project canonical error:", error);
+    return jsonResponse<ApiResponse>(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to get project state",
+        timestamp: Date.now(),
+      },
+      500,
+    );
+  }
+}
+
+/**
+ * POST /api/sessions/:id/end - End a session
+ */
+async function handleEndSession(
+  sessionId: string,
+  env: Env,
+): Promise<Response> {
+  try {
+    const registry = new SessionRegistry(env, env.DB);
+    await registry.endSession(sessionId);
+
+    return jsonResponse<ApiResponse>(
+      {
+        success: true,
+        timestamp: Date.now(),
+      },
+    );
+  } catch (error) {
+    console.error("End session error:", error);
+    return jsonResponse<ApiResponse>(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to end session",
+        timestamp: Date.now(),
+      },
+      500,
+    );
+  }
+}
+
+/**
+ * POST /api/projects/:id/consolidate - Consolidate all sessions into canonical state
+ */
+async function handleProjectConsolidate(
+  projectId: string,
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  try {
+    const body = (await request.json().catch(() => ({}))) as ProjectConsolidationRequest;
+    const strategy = body.force ? "timestamp" : "timestamp"; // Can be extended
+
+    const orchestrator = new ProjectSyncOrchestrator(env, env.DB);
+    const result = await orchestrator.consolidateProject(projectId, strategy);
+
+    // Auto-commit to Git if enabled
+    const gitService = new GitIntegrationService(env, env.DB);
+    const commitResult = await gitService.autoCommitProjectTodos(
+      projectId,
+      result.canonical_state,
+    );
+
+    return jsonResponse<ApiResponse<ProjectConsolidationResponse>>({
+      success: true,
+      data: {
+        ...result,
+        metadata: commitResult.success
+          ? { git_commit: commitResult.commit_hash }
+          : { git_error: commitResult.error },
+      } as any,
+      timestamp: Date.now(),
+    });
+  } catch (error) {
+    console.error("Project consolidate error:", error);
+    return jsonResponse<ApiResponse>(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to consolidate project",
+        timestamp: Date.now(),
+      },
+      500,
+    );
+  }
+}
+
+/**
+ * GET /api/projects/:id/canonical-state - Get canonical project state
+ */
+async function handleGetCanonicalState(
+  projectId: string,
+  env: Env,
+): Promise<Response> {
+  try {
+    const orchestrator = new ProjectSyncOrchestrator(env, env.DB);
+    const canonicalState = await orchestrator.getProjectCanonicalState(projectId);
+
+    return jsonResponse<ApiResponse<{ canonical_todos: Todo[] }>>({
+      success: true,
+      data: { canonical_todos: canonicalState },
+      timestamp: Date.now(),
+    });
+  } catch (error) {
+    console.error("Get canonical state error:", error);
+    return jsonResponse<ApiResponse>(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to get canonical state",
         timestamp: Date.now(),
       },
       500,
