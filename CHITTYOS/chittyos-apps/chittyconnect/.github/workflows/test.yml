@@ -1,0 +1,126 @@
+name: Test & Validate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - staging
+      - develop
+
+jobs:
+  validate:
+    name: Validate Configuration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate wrangler.toml
+        run: |
+          if [ ! -f wrangler.toml ]; then
+            echo "Error: wrangler.toml not found"
+            exit 1
+          fi
+          echo "✅ wrangler.toml found"
+
+      - name: Validate OpenAPI spec
+        run: |
+          if [ ! -f public/openapi.json ]; then
+            echo "Error: OpenAPI spec not found at public/openapi.json"
+            exit 1
+          fi
+
+          # Validate JSON syntax
+          if ! jq empty public/openapi.json 2>/dev/null; then
+            echo "Error: Invalid JSON in openapi.json"
+            exit 1
+          fi
+
+          echo "✅ OpenAPI spec is valid JSON"
+
+      - name: Check required files
+        run: |
+          required_files=(
+            "src/index.js"
+            "src/api/router.js"
+            "src/mcp/server.js"
+            "package.json"
+            "README.md"
+          )
+
+          for file in "${required_files[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "Error: Required file missing: $file"
+              exit 1
+            fi
+            echo "✅ Found: $file"
+          done
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate || true
+
+      - name: Check for secrets
+        run: |
+          # Check for accidentally committed secrets
+          if grep -r "CHITTY_ID_TOKEN.*=" src/ 2>/dev/null; then
+            echo "Error: Found hardcoded secrets in source code"
+            exit 1
+          fi
+          echo "✅ No hardcoded secrets found"
+
+  smoke-test:
+    name: Smoke Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check imports
+        run: |
+          # Verify main entry point can be parsed
+          node -c src/index.js
+          echo "✅ Main entry point is valid JavaScript"
+
+      - name: Verify API routes exist
+        run: |
+          routes=(
+            "src/api/routes/chittyid.js"
+            "src/api/routes/chittycases.js"
+            "src/api/routes/chittyauth.js"
+            "src/api/routes/chittyfinance.js"
+            "src/api/routes/chittyevidence.js"
+            "src/api/routes/chittysync.js"
+            "src/api/routes/chittychronicle.js"
+            "src/api/routes/chittycontextual.js"
+          )
+
+          for route in "${routes[@]}"; do
+            if [ ! -f "$route" ]; then
+              echo "Error: Route file missing: $route"
+              exit 1
+            fi
+            node -c "$route"
+            echo "✅ Valid: $route"
+          done
