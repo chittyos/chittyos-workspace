@@ -518,7 +518,7 @@ export class ChittyRegistryEnterpriseMCPAgent extends McpAgent {
 
   private calculateRateLimits(): RateLimitConfig {
     // Dynamic rate limiting based on trust score and roles
-    let baseLimit = 100; // requests per hour
+    const baseLimit = 100; // requests per hour
     let trustMultiplier = 1.0;
     let roleMultiplier = 1.0;
 

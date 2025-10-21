@@ -276,7 +276,7 @@ export class HealthMonitor {
     timeout: number;
     retries: number;
     nextCheck?: Date;
-  } {
+    } {
     return {
       isRunning: this.isRunning,
       interval: this.config.interval,

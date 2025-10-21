@@ -5,7 +5,6 @@ import express from 'express';
 import cors from 'cors';
 import { NeonService } from './services/NeonService';
 import { RegistryService } from './services/RegistryService';
-import { SchemaService } from './services/SchemaService';
 
 const app = express();
 const port = process.env.PORT || 3001;

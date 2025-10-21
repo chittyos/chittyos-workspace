@@ -228,6 +228,35 @@ export default {
         return await handleGetCanonicalState(canonicalStateMatch[1], env);
       }
 
+      // === Platform Integration Endpoints ===
+      // Google Workspace integration
+      const googleMatch = url.pathname.match(/^\/api\/integrations\/google\/(.+)$/);
+      if (googleMatch) {
+        const { handleGoogleIntegration } = await import('./integrations/google');
+        return await handleGoogleIntegration(request, env, `/${googleMatch[1]}`);
+      }
+
+      // GitHub integration
+      const githubMatch = url.pathname.match(/^\/api\/integrations\/github\/(.+)$/);
+      if (githubMatch) {
+        const { handleGitHubIntegration } = await import('./integrations/github');
+        return await handleGitHubIntegration(request, env, `/${githubMatch[1]}`);
+      }
+
+      // Cloudflare integration
+      const cloudflareMatch = url.pathname.match(/^\/api\/integrations\/cloudflare\/(.+)$/);
+      if (cloudflareMatch) {
+        const { handleCloudflareIntegration } = await import('./integrations/cloudflare');
+        return await handleCloudflareIntegration(request, env, `/${cloudflareMatch[1]}`);
+      }
+
+      // MCP integration
+      const mcpMatch = url.pathname.match(/^\/api\/integrations\/mcp\/(.+)$/);
+      if (mcpMatch) {
+        const { handleMCPIntegration } = await import('./integrations/mcp');
+        return await handleMCPIntegration(request, env, `/${mcpMatch[1]}`);
+      }
+
       // === Topic Sync Endpoints (Tier 3) ===
       // Try topic routes handler
       const topicResponse = await handleTopicRequest(request, env, url.pathname);

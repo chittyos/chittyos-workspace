@@ -101,7 +101,7 @@ const config = {
 
 // Validate configuration
 try {
-  const registryConfig = RegistryConfigSchema.parse({
+  RegistryConfigSchema.parse({
     authorities: config.authorities,
     cache: config.cache,
     healthCheck: config.healthCheck,

@@ -1,9 +1,9 @@
-import inquirer from 'inquirer';
-import chalk from 'chalk';
-import ora from 'ora';
-import fs from 'fs-extra';
-import path from 'path';
-import { execSync } from 'child_process';
+import inquirer from "inquirer";
+import chalk from "chalk";
+import ora from "ora";
+import fs from "fs-extra";
+import path from "path";
+import { execSync } from "child_process";
 
 export interface InitOptions {
   template?: string;
@@ -13,27 +13,30 @@ export interface InitOptions {
   skipInstall?: boolean;
 }
 
-export async function initCommand(projectName?: string, options: InitOptions = {}) {
-  console.log(chalk.blue('🚀 Initializing ChittyOS project...\n'));
+export async function initCommand(
+  projectName?: string,
+  options: InitOptions = {},
+) {
+  console.log(chalk.blue("🚀 Initializing ChittyOS project...\n"));
 
   // Get project name if not provided
   if (!projectName) {
     const answers = await inquirer.prompt([
       {
-        type: 'input',
-        name: 'projectName',
-        message: 'Project name:',
-        default: 'my-chittyos-project',
+        type: "input",
+        name: "projectName",
+        message: "Project name:",
+        default: "my-chittyos-project",
         validate: (input) => {
           if (!input || input.trim().length === 0) {
-            return 'Project name is required';
+            return "Project name is required";
           }
           if (!/^[a-z0-9-_]+$/.test(input)) {
-            return 'Project name must contain only lowercase letters, numbers, hyphens, and underscores';
+            return "Project name must contain only lowercase letters, numbers, hyphens, and underscores";
           }
           return true;
-        }
-      }
+        },
+      },
     ]);
     projectName = answers.projectName;
   }
@@ -42,58 +45,74 @@ export async function initCommand(projectName?: string, options: InitOptions = {
   if (!options.template) {
     const templateAnswer = await inquirer.prompt([
       {
-        type: 'list',
-        name: 'template',
-        message: 'Choose a project template:',
+        type: "list",
+        name: "template",
+        message: "Choose a project template:",
         choices: [
           {
-            name: '🔧 Service - Basic ChittyOS service with registry integration',
-            value: 'service'
+            name: "🔧 Service - Basic ChittyOS service with registry integration",
+            value: "service",
           },
           {
-            name: '🤖 AI Service - Service with AI orchestration capabilities',
-            value: 'ai-service'
+            name: "🤖 AI Service - Service with AI orchestration capabilities",
+            value: "ai-service",
           },
           {
-            name: '🌉 Bridge Service - Service with context bridge integration',
-            value: 'bridge-service'
+            name: "🌉 Bridge Service - Service with context bridge integration",
+            value: "bridge-service",
           },
           {
-            name: '📊 Full Stack - Complete ChittyOS ecosystem with all features',
-            value: 'fullstack'
+            name: "📊 Full Stack - Complete ChittyOS ecosystem with all features",
+            value: "fullstack",
           },
           {
-            name: '🧪 QA Framework - Testing and penetration testing setup',
-            value: 'qa-framework'
-          }
-        ]
-      }
+            name: "🧪 QA Framework - Testing and penetration testing setup",
+            value: "qa-framework",
+          },
+        ],
+      },
     ]);
     options.template = templateAnswer.template;
   }
 
   // Feature selection for fullstack template
-  if (options.template === 'fullstack') {
+  if (options.template === "fullstack") {
     const features = await inquirer.prompt([
       {
-        type: 'checkbox',
-        name: 'features',
-        message: 'Select features to include:',
+        type: "checkbox",
+        name: "features",
+        message: "Select features to include:",
         choices: [
-          { name: '🔍 Service Registry & Discovery', value: 'registry', checked: true },
-          { name: '🤖 AI Orchestration (Cloudflare)', value: 'ai', checked: true },
-          { name: '🌉 Context Bridge & Session Sync', value: 'bridge', checked: true },
-          { name: '🔐 Pipeline Authentication', value: 'auth', checked: true },
-          { name: '🧪 QA & Penetration Testing', value: 'qa', checked: true },
-          { name: '📊 Health Monitoring', value: 'monitoring', checked: true },
-          { name: '🗄️ Database Integration (Neon)', value: 'database', checked: true }
-        ]
-      }
+          {
+            name: "🔍 Service Registry & Discovery",
+            value: "registry",
+            checked: true,
+          },
+          {
+            name: "🤖 AI Orchestration (Cloudflare)",
+            value: "ai",
+            checked: true,
+          },
+          {
+            name: "🌉 Context Bridge & Session Sync",
+            value: "bridge",
+            checked: true,
+          },
+          { name: "🔐 Pipeline Authentication", value: "auth", checked: true },
+          { name: "🧪 QA & Penetration Testing", value: "qa", checked: true },
+          { name: "📊 Health Monitoring", value: "monitoring", checked: true },
+          {
+            name: "🗄️ Database Integration (Neon)",
+            value: "database",
+            checked: true,
+          },
+        ],
+      },
     ]);
 
-    options.registry = features.features.includes('registry');
-    options.ai = features.features.includes('ai');
-    options.bridge = features.features.includes('bridge');
+    options.registry = features.features.includes("registry");
+    options.ai = features.features.includes("ai");
+    options.bridge = features.features.includes("bridge");
   }
 
   const projectPath = path.resolve(projectName!);
@@ -102,22 +121,22 @@ export async function initCommand(projectName?: string, options: InitOptions = {
   if (await fs.pathExists(projectPath)) {
     const overwrite = await inquirer.prompt([
       {
-        type: 'confirm',
-        name: 'overwrite',
+        type: "confirm",
+        name: "overwrite",
         message: `Directory ${projectName} already exists. Overwrite?`,
-        default: false
-      }
+        default: false,
+      },
     ]);
 
     if (!overwrite.overwrite) {
-      console.log(chalk.yellow('❌ Project initialization cancelled'));
+      console.log(chalk.yellow("❌ Project initialization cancelled"));
       return;
     }
 
     await fs.remove(projectPath);
   }
 
-  const spinner = ora('Creating project structure...').start();
+  const spinner = ora("Creating project structure...").start();
 
   try {
     // Create project directory
@@ -136,95 +155,122 @@ export async function initCommand(projectName?: string, options: InitOptions = {
     await generateSourceCode(projectPath, options.template!, options);
 
     // Generate QA and testing framework if selected
-    if (options.template === 'qa-framework' || options.template === 'fullstack') {
+    if (
+      options.template === "qa-framework" ||
+      options.template === "fullstack"
+    ) {
       await generateQAFramework(projectPath);
     }
 
-    spinner.succeed('Project structure created');
+    spinner.succeed("Project structure created");
 
     // Install dependencies
     if (!options.skipInstall) {
-      const installSpinner = ora('Installing dependencies...').start();
+      const installSpinner = ora("Installing dependencies...").start();
       try {
         process.chdir(projectPath);
-        execSync('npm install', { stdio: 'pipe' });
-        installSpinner.succeed('Dependencies installed');
+        execSync("npm install", { stdio: "pipe" });
+        installSpinner.succeed("Dependencies installed");
       } catch (error) {
-        installSpinner.fail('Failed to install dependencies');
-        console.log(chalk.yellow('You can install them manually with: npm install'));
+        installSpinner.fail("Failed to install dependencies");
+        console.log(
+          chalk.yellow("You can install them manually with: npm install"),
+        );
       }
     }
 
     // Success message
     console.log(
-      chalk.green('\n🎉 ChittyOS project created successfully!\n') +
-      chalk.white('📁 Project: ') + chalk.cyan(projectName) + '\n' +
-      chalk.white('📍 Path: ') + chalk.gray(projectPath) + '\n'
+      chalk.green("\n🎉 ChittyOS project created successfully!\n") +
+        chalk.white("📁 Project: ") +
+        chalk.cyan(projectName) +
+        "\n" +
+        chalk.white("📍 Path: ") +
+        chalk.gray(projectPath) +
+        "\n",
     );
 
     // Next steps
-    console.log(chalk.blue('🚀 Next steps:'));
+    console.log(chalk.blue("🚀 Next steps:"));
     console.log(chalk.gray(`  cd ${projectName}`));
 
     if (options.skipInstall) {
-      console.log(chalk.gray('  npm install'));
+      console.log(chalk.gray("  npm install"));
     }
 
-    if (options.template === 'qa-framework' || options.template === 'fullstack') {
-      console.log(chalk.gray('  npm run test:qa:smoke        # Run smoke tests'));
-      console.log(chalk.gray('  npm run test:security        # Run security audit'));
-      console.log(chalk.gray('  npm run test:load           # Run load tests'));
+    if (
+      options.template === "qa-framework" ||
+      options.template === "fullstack"
+    ) {
+      console.log(
+        chalk.gray("  npm run test:qa:smoke        # Run smoke tests"),
+      );
+      console.log(
+        chalk.gray("  npm run test:security        # Run security audit"),
+      );
+      console.log(chalk.gray("  npm run test:load           # Run load tests"));
     }
 
-    console.log(chalk.gray('  npm run dev                 # Start development'));
-    console.log(chalk.gray('  chittyos status             # Check ecosystem status'));
+    console.log(
+      chalk.gray("  npm run dev                 # Start development"),
+    );
+    console.log(
+      chalk.gray("  chittyos status             # Check ecosystem status"),
+    );
 
     if (options.ai) {
-      console.log(chalk.gray('  chittyos ai --test          # Test AI infrastructure'));
+      console.log(
+        chalk.gray("  chittyos ai --test          # Test AI infrastructure"),
+      );
     }
 
     if (options.bridge) {
-      console.log(chalk.gray('  chittyos bridge --start     # Start context bridge'));
+      console.log(
+        chalk.gray("  chittyos bridge --start     # Start context bridge"),
+      );
     }
-
   } catch (error) {
-    spinner.fail('Failed to create project');
-    console.error(chalk.red('Error:'), error.message);
+    spinner.fail("Failed to create project");
+    console.error(chalk.red("Error:"), error.message);
     process.exit(1);
   }
 }
 
-async function generateProjectStructure(projectPath: string, template: string, options: InitOptions) {
+async function generateProjectStructure(
+  projectPath: string,
+  template: string,
+  options: InitOptions,
+) {
   const dirs = [
-    'src',
-    'src/services',
-    'src/middleware',
-    'src/routes',
-    'src/utils',
-    'src/types',
-    'config',
-    'scripts'
+    "src",
+    "src/services",
+    "src/middleware",
+    "src/routes",
+    "src/utils",
+    "src/types",
+    "config",
+    "scripts",
   ];
 
   if (options.registry) {
-    dirs.push('src/registry');
+    dirs.push("src/registry");
   }
 
   if (options.ai) {
-    dirs.push('src/ai', 'src/mcp-agents');
+    dirs.push("src/ai", "src/mcp-agents");
   }
 
   if (options.bridge) {
-    dirs.push('src/bridge');
+    dirs.push("src/bridge");
   }
 
-  if (template === 'qa-framework' || template === 'fullstack') {
+  if (template === "qa-framework" || template === "fullstack") {
     dirs.push(
-      'tests',
-      'tests/qa',
-      'tests/security',
-      'tests/load',
-      'tests/integration'
+      "tests",
+      "tests/qa",
+      "tests/security",
+      "tests/load",
+      "tests/integration",
     );
   }
 
@@ -233,47 +279,51 @@ async function generateProjectStructure(projectPath: string, template: string, o
   }
 }
 
-async function generatePackageJson(projectPath: string, projectName: string, options: InitOptions) {
+async function generatePackageJson(
+  projectPath: string,
+  projectName: string,
+  options: InitOptions,
+) {
   const packageJson = {
     name: projectName,
-    version: '1.0.0',
-    description: 'ChittyOS service built with the Trust Operating System',
-    main: 'dist/index.js',
+    version: "1.0.0",
+    description: "ChittyOS service built with the Trust Operating System",
+    main: "dist/index.js",
     scripts: {
-      build: 'tsc',
-      dev: 'tsx src/index.ts',
-      start: 'node dist/index.js',
-      'type-check': 'tsc --noEmit',
-      lint: 'eslint src --ext .ts,.tsx',
-      'lint:fix': 'eslint src --ext .ts,.tsx --fix'
+      build: "tsc",
+      dev: "tsx src/index.ts",
+      start: "node dist/index.js",
+      "type-check": "tsc --noEmit",
+      lint: "eslint src --ext .ts,.tsx",
+      "lint:fix": "eslint src --ext .ts,.tsx --fix",
     },
     dependencies: {
-      '@chittyos/standard': '^1.0.0',
-      express: '^4.18.0',
-      winston: '^3.10.0',
-      cors: '^2.8.5',
-      helmet: '^7.0.0',
-      'express-rate-limit': '^6.10.0'
+      "@chittyos/standard": "^1.0.0",
+      express: "^4.18.0",
+      winston: "^3.10.0",
+      cors: "^2.8.5",
+      helmet: "^7.0.0",
+      "express-rate-limit": "^6.10.0",
     },
     devDependencies: {
-      '@types/node': '^20.0.0',
-      '@types/express': '^4.17.0',
-      '@types/cors': '^2.8.0',
-      typescript: '^5.0.0',
-      tsx: '^4.0.0',
-      eslint: '^8.0.0',
-      '@typescript-eslint/parser': '^6.0.0',
-      '@typescript-eslint/eslint-plugin': '^6.0.0'
-    }
+      "@types/node": "^20.0.0",
+      "@types/express": "^4.17.0",
+      "@types/cors": "^2.8.0",
+      typescript: "^5.0.0",
+      tsx: "^4.0.0",
+      eslint: "^8.0.0",
+      "@typescript-eslint/parser": "^6.0.0",
+      "@typescript-eslint/eslint-plugin": "^6.0.0",
+    },
   };
 
   // Add AI dependencies
   if (options.ai) {
     packageJson.dependencies = {
       ...packageJson.dependencies,
-      '@cloudflare/mcp-agent-api': '^1.0.0',
-      '@langchain/core': '^0.2.0',
-      '@langchain/cloudflare': '^0.1.0'
+      "@cloudflare/mcp-agent-api": "^1.0.0",
+      "@langchain/core": "^0.2.0",
+      "@langchain/cloudflare": "^0.1.0",
     };
   }
 
@@ -281,56 +331,58 @@ async function generatePackageJson(projectPath: string, projectName: string, opt
   if (options.bridge) {
     packageJson.dependencies = {
       ...packageJson.dependencies,
-      'ws': '^8.13.0',
-      'uuid': '^9.0.0'
+      ws: "^8.13.0",
+      // Note: Use ChittyID service instead of local UUID generation
     };
     packageJson.devDependencies = {
       ...packageJson.devDependencies,
-      '@types/ws': '^8.5.0',
-      '@types/uuid': '^9.0.0'
+      "@types/ws": "^8.5.0",
     };
   }
 
   // Add QA testing dependencies
-  if (options.template === 'qa-framework' || options.template === 'fullstack') {
+  if (options.template === "qa-framework" || options.template === "fullstack") {
     packageJson.scripts = {
       ...packageJson.scripts,
-      test: 'jest',
-      'test:watch': 'jest --watch',
-      'test:coverage': 'jest --coverage',
-      'test:qa:smoke': 'jest tests/qa/smoke.test.ts',
-      'test:qa:integration': 'jest tests/qa/integration.test.ts',
-      'test:qa:compliance': 'jest tests/qa/compliance.test.ts',
-      'test:security': 'jest tests/security',
-      'test:security:critical': 'jest tests/security --testNamePattern="critical"',
-      'test:security:high': 'jest tests/security --testNamePattern="high"',
-      'test:load': 'jest tests/load',
-      'qa:audit': 'tsx scripts/run-security-audit.ts',
-      'qa:suite': 'tsx scripts/run-qa-suite.ts'
+      test: "jest",
+      "test:watch": "jest --watch",
+      "test:coverage": "jest --coverage",
+      "test:qa:smoke": "jest tests/qa/smoke.test.ts",
+      "test:qa:integration": "jest tests/qa/integration.test.ts",
+      "test:qa:compliance": "jest tests/qa/compliance.test.ts",
+      "test:security": "jest tests/security",
+      "test:security:critical":
+        'jest tests/security --testNamePattern="critical"',
+      "test:security:high": 'jest tests/security --testNamePattern="high"',
+      "test:load": "jest tests/load",
+      "qa:audit": "tsx scripts/run-security-audit.ts",
+      "qa:suite": "tsx scripts/run-qa-suite.ts",
     };
 
     packageJson.devDependencies = {
       ...packageJson.devDependencies,
-      jest: '^29.0.0',
-      '@types/jest': '^29.0.0',
-      'ts-jest': '^29.0.0',
-      supertest: '^6.3.0',
-      '@types/supertest': '^2.0.0'
+      jest: "^29.0.0",
+      "@types/jest": "^29.0.0",
+      "ts-jest": "^29.0.0",
+      supertest: "^6.3.0",
+      "@types/supertest": "^2.0.0",
     };
   }
 
-  await fs.writeJSON(path.join(projectPath, 'package.json'), packageJson, { spaces: 2 });
+  await fs.writeJSON(path.join(projectPath, "package.json"), packageJson, {
+    spaces: 2,
+  });
 }
 
 async function generateConfigFiles(projectPath: string, options: InitOptions) {
   // TypeScript config
   const tsConfig = {
     compilerOptions: {
-      target: 'ES2022',
-      module: 'commonjs',
-      lib: ['ES2022'],
-      outDir: './dist',
-      rootDir: './src',
+      target: "ES2022",
+      module: "commonjs",
+      lib: ["ES2022"],
+      outDir: "./dist",
+      rootDir: "./src",
       strict: true,
       esModuleInterop: true,
       skipLibCheck: true,
@@ -338,13 +390,15 @@ async function generateConfigFiles(projectPath: string, options: InitOptions) {
       resolveJsonModule: true,
       declaration: true,
       declarationMap: true,
-      sourceMap: true
+      sourceMap: true,
     },
-    include: ['src/**/*'],
-    exclude: ['node_modules', 'dist', 'tests']
+    include: ["src/**/*"],
+    exclude: ["node_modules", "dist", "tests"],
   };
 
-  await fs.writeJSON(path.join(projectPath, 'tsconfig.json'), tsConfig, { spaces: 2 });
+  await fs.writeJSON(path.join(projectPath, "tsconfig.json"), tsConfig, {
+    spaces: 2,
+  });
 
   // Environment config
   const envExample = `# ChittyOS Configuration
@@ -366,7 +420,7 @@ NEON_DATABASE_URL=postgresql://user:password@host:5432/database
 REDIS_URL=redis://localhost:6379
 `;
 
-  await fs.writeFile(path.join(projectPath, '.env.example'), envExample);
+  await fs.writeFile(path.join(projectPath, ".env.example"), envExample);
 
   // AI configuration
   if (options.ai) {
@@ -380,20 +434,24 @@ CLOUDFLARE_ACCOUNT_ID=your-account-id
 CLOUDFLARE_API_TOKEN=your-api-token
 `;
 
-    await fs.appendFile(path.join(projectPath, '.env.example'), aiConfig);
+    await fs.appendFile(path.join(projectPath, ".env.example"), aiConfig);
   }
 }
 
-async function generateSourceCode(projectPath: string, template: string, options: InitOptions) {
+async function generateSourceCode(
+  projectPath: string,
+  template: string,
+  options: InitOptions,
+) {
   // Main application file
   const mainApp = `import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { logger } from './utils/logger';
-${options.registry ? "import { registerWithChittyOS } from './services/registry';" : ''}
-${options.ai ? "import { setupAIOrchestration } from './ai/orchestration';" : ''}
-${options.bridge ? "import { setupContextBridge } from './bridge/client';" : ''}
+${options.registry ? "import { registerWithChittyOS } from './services/registry';" : ""}
+${options.ai ? "import { setupAIOrchestration } from './ai/orchestration';" : ""}
+${options.bridge ? "import { setupContextBridge } from './bridge/client';" : ""}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -434,9 +492,9 @@ app.get('/', (req, res) => {
 
 async function startServer() {
   try {
-    ${options.registry ? 'await registerWithChittyOS();' : ''}
-    ${options.ai ? 'await setupAIOrchestration();' : ''}
-    ${options.bridge ? 'await setupContextBridge();' : ''}
+    ${options.registry ? "await registerWithChittyOS();" : ""}
+    ${options.ai ? "await setupAIOrchestration();" : ""}
+    ${options.bridge ? "await setupContextBridge();" : ""}
 
     app.listen(PORT, () => {
       logger.info(\`ChittyOS service started on port \${PORT}\`);
@@ -450,7 +508,7 @@ async function startServer() {
 startServer();
 `;
 
-  await fs.writeFile(path.join(projectPath, 'src/index.ts'), mainApp);
+  await fs.writeFile(path.join(projectPath, "src/index.ts"), mainApp);
 
   // Logger utility
   const loggerCode = `import winston from 'winston';
@@ -476,7 +534,7 @@ export const logger = winston.createLogger({
 });
 `;
 
-  await fs.writeFile(path.join(projectPath, 'src/utils/logger.ts'), loggerCode);
+  await fs.writeFile(path.join(projectPath, "src/utils/logger.ts"), loggerCode);
 }
 
 async function generateQAFramework(projectPath: string) {
@@ -501,7 +559,7 @@ async function generateQAFramework(projectPath: string) {
 };
 `;
 
-  await fs.writeFile(path.join(projectPath, 'jest.config.js'), jestConfig);
+  await fs.writeFile(path.join(projectPath, "jest.config.js"), jestConfig);
 
   // Test setup
   const testSetup = `import { logger } from '../src/utils/logger';
@@ -517,7 +575,7 @@ process.env.NODE_ENV = 'test';
 process.env.CHITTYOS_REGISTRY_URL = 'http://localhost:3001';
 `;
 
-  await fs.writeFile(path.join(projectPath, 'tests/setup.ts'), testSetup);
+  await fs.writeFile(path.join(projectPath, "tests/setup.ts"), testSetup);
 
   // Smoke test
   const smokeTest = `import request from 'supertest';
@@ -551,7 +609,10 @@ describe('ChittyOS Smoke Tests', () => {
 });
 `;
 
-  await fs.writeFile(path.join(projectPath, 'tests/qa/smoke.test.ts'), smokeTest);
+  await fs.writeFile(
+    path.join(projectPath, "tests/qa/smoke.test.ts"),
+    smokeTest,
+  );
 
   // Security test template
   const securityTest = `describe('Security Tests', () => {
@@ -583,7 +644,10 @@ describe('ChittyOS Smoke Tests', () => {
 });
 `;
 
-  await fs.writeFile(path.join(projectPath, 'tests/security/security.test.ts'), securityTest);
+  await fs.writeFile(
+    path.join(projectPath, "tests/security/security.test.ts"),
+    securityTest,
+  );
 
   // Load test template
   const loadTest = `describe('Load Tests', () => {
@@ -599,5 +663,8 @@ describe('ChittyOS Smoke Tests', () => {
 });
 `;
 
-  await fs.writeFile(path.join(projectPath, 'tests/load/performance.test.ts'), loadTest);
+  await fs.writeFile(
+    path.join(projectPath, "tests/load/performance.test.ts"),
+    loadTest,
+  );
 }

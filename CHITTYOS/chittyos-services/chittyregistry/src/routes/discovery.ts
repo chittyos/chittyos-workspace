@@ -185,7 +185,7 @@ export function createDiscoveryRouter(registry: RegistryService): Router {
    */
   router.post('/resolve', async (req: Request, res: Response) => {
     try {
-      const { capability, preferredRegion, requirements } = req.body;
+      const { capability } = req.body;
 
       if (!capability) {
         return res.status(400).json({

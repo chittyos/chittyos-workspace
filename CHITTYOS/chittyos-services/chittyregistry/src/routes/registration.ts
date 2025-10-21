@@ -1,6 +1,6 @@
 // Service Registration and Management Routes
 
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import { RegistryService } from '../services/RegistryService';
 import { HealthMonitor } from '../services/HealthMonitor';
 import { AuthMiddleware, AuthenticatedRequest } from '../middleware/auth';
