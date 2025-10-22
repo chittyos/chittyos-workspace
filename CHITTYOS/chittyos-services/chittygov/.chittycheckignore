@@ -1,0 +1,8 @@
+# ChittyCheck Ignore Patterns
+
+# Build artifacts
+dist/
+node_modules/
+
+# Dependencies
+package-lock.json

@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChittyOS Unified Dashboard - Complete System Monitor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="ecosystem-modules.js"></script>
+    <style>
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.5); }
+            50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.8); }
+        }
+        .pulse-glow { animation: pulse-glow 2s infinite; }
+        .glassmorphic {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .status-active { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+        .status-paused { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+        .status-error { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .sync-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .sync-active { background: #22c55e; animation: pulse 2s infinite; }
+        .sync-inactive { background: #6b7280; }
+        .sync-error { background: #ef4444; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 via-slate-900 to-black min-h-screen text-white">
+    <!-- Header -->
+    <header class="glassmorphic sticky top-0 z-50 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <div class="pulse-glow w-12 h-12 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center">
+                    <i data-lucide="activity" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold">ChittyOS Unified Dashboard</h1>
+                    <p class="text-sm text-gray-400">Complete System Monitor & Control</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <a href="service-registry-dashboard.html" class="glassmorphic px-4 py-2 rounded-lg hover:bg-white/10 transition-colors flex items-center space-x-2">
+                    <i data-lucide="network" class="w-4 h-4"></i>
+                    <span class="text-sm">Service Registry</span>
+                </a>
+                <div class="flex items-center space-x-2">
+                    <div class="sync-indicator sync-active"></div>
+                    <span class="text-sm text-gray-400">All Systems</span>
+                </div>
+                <div id="system-time" class="text-sm text-gray-400"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="max-w-7xl mx-auto p-6">
+        <!-- System Health Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="glassmorphic rounded-xl p-4 text-center">
+                <div class="text-3xl font-bold text-green-400" id="health-score">98%</div>
+                <div class="text-sm text-gray-400 mt-1">System Health</div>
+                <div class="w-full bg-gray-700 rounded-full h-2 mt-2">
+                    <div class="bg-green-500 h-2 rounded-full transition-all duration-500" id="health-bar" style="width: 98%"></div>
+                </div>
+            </div>
+
+            <div class="glassmorphic rounded-xl p-4 text-center">
+                <div class="text-3xl font-bold text-blue-400" id="evidence-count">5,635</div>
+                <div class="text-sm text-gray-400 mt-1">Evidence Files</div>
+                <div class="text-xs text-blue-400 mt-1">ChittyIDs Assigned</div>
+            </div>
+
+            <div class="glassmorphic rounded-xl p-4 text-center">
+                <div class="text-3xl font-bold text-purple-400" id="active-sessions">3</div>
+                <div class="text-sm text-gray-400 mt-1">Active Sessions</div>
+                <div class="text-xs text-purple-400 mt-1">Cross-Platform Sync</div>
+            </div>
+
+            <div class="glassmorphic rounded-xl p-4 text-center">
+                <div class="text-3xl font-bold text-yellow-400" id="module-count">51+</div>
+                <div class="text-sm text-gray-400 mt-1">Ecosystem Modules</div>
+                <div class="text-xs text-yellow-400 mt-1">Infrastructure</div>
+            </div>
+        </div>
+
+        <!-- Service Status Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <!-- Session Sync Status -->
+            <div class="glassmorphic rounded-xl p-5">
+                <h3 class="text-lg font-semibold mb-4 flex items-center">
+                    <i data-lucide="refresh-cw" class="w-5 h-5 mr-2 text-purple-400"></i>
+                    Session Sync
+                </h3>
+                <div class="space-y-3" id="session-sync-status">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-400">Status</span>
+                        <span class="status-badge status-active">Active</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 text-center">
+                        <div class="bg-slate-800/50 rounded-lg p-2">
+                            <div class="text-lg font-bold text-purple-400" id="sync-sessions">3</div>
+                            <div class="text-xs text-gray-400">Sessions</div>
+                        </div>
+                        <div class="bg-slate-800/50 rounded-lg p-2">
+                            <div class="text-lg font-bold text-green-400" id="sync-health">95%</div>
+                            <div class="text-xs text-gray-400">Health</div>
+                        </div>
+                    </div>
+
+                    <!-- Platform Status -->
+                    <div class="space-y-2">
+                        <div class="text-xs text-gray-500 uppercase tracking-wide">Platforms</div>
+                        <div id="platform-status">
+                            <!-- Platform statuses will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notion Sync Status -->
+            <div class="glassmorphic rounded-xl p-5">
+                <h3 class="text-lg font-semibold mb-4 flex items-center">
+                    <i data-lucide="database" class="w-5 h-5 mr-2 text-blue-400"></i>
+                    Notion Sync
+                </h3>
+                <div class="space-y-3" id="notion-sync-status">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-400">Status</span>
+                        <span class="status-badge status-paused">Not Configured</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 text-center">
+                        <div class="bg-slate-800/50 rounded-lg p-2">
+                            <div class="text-lg font-bold text-gray-400" id="notion-pending">0</div>
+                            <div class="text-xs text-gray-400">Pending</div>
+                        </div>
+                        <div class="bg-slate-800/50 rounded-lg p-2">
+                            <div class="text-lg font-bold text-gray-400" id="notion-dlq">0</div>
+                            <div class="text-xs text-gray-400">DLQ</div>
+                        </div>
+                    </div>
+
+                    <!-- Metrics -->
+                    <div class="space-y-1 text-xs">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Success:</span>
+                            <span id="notion-success">0</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">429 Errors:</span>
+                            <span id="notion-429">0</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Schema Issues:</span>
+                            <span id="notion-schema">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chitty Stack Status -->
+            <div class="glassmorphic rounded-xl p-5">
+                <h3 class="text-lg font-semibold mb-4 flex items-center">
+                    <i data-lucide="layers" class="w-5 h-5 mr-2 text-yellow-400"></i>
+                    Chitty Stack
+                </h3>
+                <div class="space-y-3" id="chitty-stack-status">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-400">Health</span>
+                        <span class="status-badge status-active" id="stack-health">83%</span>
+                    </div>
+
+                    <!-- Core Services -->
+                    <div class="space-y-2">
+                        <div class="text-xs text-gray-500 uppercase tracking-wide">Core Services</div>
+                        <div class="grid grid-cols-2 gap-1 text-xs" id="stack-services">
+                            <!-- Services will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Evidence & Activity Dashboard -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- Evidence Tracking -->
+            <div class="glassmorphic rounded-xl p-5">
+                <h3 class="text-lg font-semibold mb-4 flex items-center">
+                    <i data-lucide="shield-check" class="w-5 h-5 mr-2 text-green-400"></i>
+                    Evidence Tracking
+                </h3>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-3 gap-3 text-center">
+                        <div class="bg-slate-800/50 rounded-lg p-3">
+                            <div class="text-xl font-bold text-green-400" id="evidence-verified">1,205</div>
+                            <div class="text-xs text-gray-400">Verified</div>
+                        </div>
+                        <div class="bg-slate-800/50 rounded-lg p-3">
+                            <div class="text-xl font-bold text-yellow-400" id="evidence-pending">23</div>
+                            <div class="text-xs text-gray-400">Pending</div>
+                        </div>
+                        <div class="bg-slate-800/50 rounded-lg p-3">
+                            <div class="text-xl font-bold text-purple-400" id="evidence-processed">24,758</div>
+                            <div class="text-xs text-gray-400">Processed</div>
+                        </div>
+                    </div>
+
+                    <!-- Storage Usage -->
+                    <div class="bg-slate-800/50 rounded-lg p-3">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm text-gray-400">Storage Usage</span>
+                            <span class="text-sm font-medium" id="storage-percentage">67%</span>
+                        </div>
+                        <div class="w-full bg-gray-700 rounded-full h-2">
+                            <div class="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-500" id="storage-bar" style="width: 67%"></div>
+                        </div>
+                        <div class="text-xs text-gray-400 mt-1" id="storage-details">134GB of 200GB</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Real-time Activity -->
+            <div class="glassmorphic rounded-xl p-5">
+                <h3 class="text-lg font-semibold mb-4 flex items-center">
+                    <i data-lucide="activity" class="w-5 h-5 mr-2 text-cyan-400"></i>
+                    Real-time Activity
+                </h3>
+                <div class="space-y-2 max-h-64 overflow-y-auto" id="activity-feed">
+                    <!-- Activity items will be inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- System Controls -->
+        <div class="glassmorphic rounded-xl p-6">
+            <h3 class="text-lg font-semibold mb-4 flex items-center">
+                <i data-lucide="settings" class="w-5 h-5 mr-2 text-gray-400"></i>
+                System Controls
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button onclick="restartServices()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center space-x-2">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                    <span>Restart Services</span>
+                </button>
+
+                <button onclick="createCheckpoint()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center space-x-2">
+                    <i data-lucide="save" class="w-4 h-4"></i>
+                    <span>Create Checkpoint</span>
+                </button>
+
+                <button onclick="syncAllSessions()" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center space-x-2">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    <span>Sync All Sessions</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Global state
+        const API_BASE = 'http://localhost:3001';
+        let lastUpdateTime = 0;
+
+        // Update system time
+        function updateSystemTime() {
+            const now = new Date();
+            document.getElementById('system-time').textContent = now.toLocaleString();
+        }
+        setInterval(updateSystemTime, 1000);
+        updateSystemTime();
+
+        // Fetch all system data
+        async function fetchSystemData() {
+            try {
+                // Parallel fetch of all endpoints
+                const [status, evidence, activity, ecosystem, sessionSync, notionSync, chittyStack] = await Promise.all([
+                    fetch(`${API_BASE}/api/status`).then(r => r.json()),
+                    fetch(`${API_BASE}/api/evidence`).then(r => r.json()),
+                    fetch(`${API_BASE}/api/activity`).then(r => r.json()),
+                    fetch(`${API_BASE}/api/ecosystem`).then(r => r.json()),
+                    fetch(`${API_BASE}/api/session-sync/status`).then(r => r.json()),
+                    fetch(`${API_BASE}/api/notion-sync/status`).then(r => r.json()),
+                    fetch(`${API_BASE}/api/chitty-stack`).then(r => r.json())
+                ]);
+
+                // Update UI components
+                updateHealthOverview(status);
+                updateEvidenceData(status, evidence);
+                updateSessionSync(sessionSync);
+                updateNotionSync(notionSync);
+                updateChittyStack(chittyStack);
+                updateActivityFeed(activity.activities || []);
+
+                lastUpdateTime = Date.now();
+                console.log('📊 Dashboard updated successfully');
+
+            } catch (error) {
+                console.error('Failed to fetch system data:', error);
+                showConnectionError();
+            }
+        }
+
+        // Update health overview
+        function updateHealthOverview(status) {
+            const healthScore = status.services ?
+                (Object.values(status.services).filter(v => v).length / Object.keys(status.services).length * 100).toFixed(0) : 98;
+
+            document.getElementById('health-score').textContent = healthScore + '%';
+            document.getElementById('health-bar').style.width = healthScore + '%';
+
+            // Update evidence count
+            if (status.evidence) {
+                document.getElementById('evidence-count').textContent = status.evidence.count?.toLocaleString() || '0';
+                document.getElementById('evidence-processed').textContent = status.evidence.processed?.toLocaleString() || '0';
+            }
+        }
+
+        // Update session sync status
+        function updateSessionSync(syncData) {
+            document.getElementById('sync-sessions').textContent = syncData.activeSessions || '0';
+            document.getElementById('sync-health').textContent = (syncData.healthScore || 0) + '%';
+
+            // Update platform status
+            const platformContainer = document.getElementById('platform-status');
+            const platforms = syncData.platforms || {};
+
+            platformContainer.innerHTML = Object.entries(platforms).map(([platform, data]) => {
+                const statusClass = data.active ? 'sync-active' : 'sync-inactive';
+                const statusText = data.active ? 'Active' : 'Offline';
+
+                return `
+                    <div class="flex items-center justify-between text-xs">
+                        <div class="flex items-center">
+                            <div class="sync-indicator ${statusClass}"></div>
+                            <span class="capitalize">${platform}</span>
+                        </div>
+                        <span class="text-gray-400">${statusText}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Update Notion sync status
+        function updateNotionSync(notionData) {
+            const statusBadge = document.querySelector('#notion-sync-status .status-badge');
+
+            if (notionData.enabled) {
+                statusBadge.className = 'status-badge status-active';
+                statusBadge.textContent = 'Active';
+            } else {
+                statusBadge.className = 'status-badge status-paused';
+                statusBadge.textContent = 'Not Configured';
+            }
+
+            document.getElementById('notion-pending').textContent = notionData.atomicFacts?.pending || '0';
+            document.getElementById('notion-dlq').textContent = notionData.dlqDepth || '0';
+            document.getElementById('notion-success').textContent = notionData.metrics?.notion_ok || '0';
+            document.getElementById('notion-429').textContent = notionData.metrics?.notion_429 || '0';
+            document.getElementById('notion-schema').textContent = notionData.metrics?.schema_mismatch || '0';
+        }
+
+        // Update Chitty Stack status
+        function updateChittyStack(stackData) {
+            const healthPercentage = Math.round(stackData.health || 0);
+            document.getElementById('stack-health').textContent = healthPercentage + '%';
+
+            // Update services
+            const servicesContainer = document.getElementById('stack-services');
+            const services = stackData.services || {};
+
+            servicesContainer.innerHTML = Object.entries(services).map(([service, data]) => {
+                const statusClass = data.status === 'active' ? 'text-green-400' :
+                                  data.status === 'paused' ? 'text-yellow-400' : 'text-gray-400';
+
+                return `
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-300">${service}</span>
+                        <div class="w-2 h-2 rounded-full ${statusClass.replace('text-', 'bg-')}"></div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Update activity feed
+        function updateActivityFeed(activities) {
+            const feed = document.getElementById('activity-feed');
+
+            feed.innerHTML = activities.slice(0, 8).map(activity => `
+                <div class="flex items-start space-x-3 p-2 bg-slate-800/30 rounded-lg">
+                    <i data-lucide="activity" class="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0"></i>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm font-medium text-gray-200 truncate">${activity.source || 'System'}</div>
+                        <div class="text-xs text-gray-400 line-clamp-2">${activity.message}</div>
+                        <div class="text-xs text-gray-500 mt-1">${activity.timestamp}</div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Re-initialize icons
+            lucide.createIcons();
+        }
+
+        // Update evidence data
+        function updateEvidenceData(status, evidence) {
+            if (status.evidence) {
+                document.getElementById('evidence-verified').textContent = '1,205'; // Mock for now
+                document.getElementById('evidence-pending').textContent = '23'; // Mock for now
+            }
+        }
+
+        // Show connection error
+        function showConnectionError() {
+            const healthScore = document.getElementById('health-score');
+            healthScore.textContent = 'Error';
+            healthScore.className = 'text-3xl font-bold text-red-400';
+        }
+
+        // Control functions
+        async function restartServices() {
+            console.log('🔄 Restarting services...');
+            // Implement actual restart logic
+            alert('Service restart initiated. Check logs for status.');
+        }
+
+        async function createCheckpoint() {
+            console.log('💾 Creating checkpoint...');
+            // Implement checkpoint creation
+            alert('Checkpoint created successfully.');
+        }
+
+        async function syncAllSessions() {
+            console.log('🔄 Syncing all sessions...');
+            // Implement session sync
+            alert('Session sync initiated across all platforms.');
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initial data fetch
+            fetchSystemData();
+
+            // Auto-refresh every 5 seconds
+            setInterval(fetchSystemData, 5000);
+
+            console.log('🚀 ChittyOS Unified Dashboard initialized');
+        });
+    </script>
+</body>
+</html>

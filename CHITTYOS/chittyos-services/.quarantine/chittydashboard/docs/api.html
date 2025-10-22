@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChittyOS API Documentation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .code-block {
+            background: #1a1a1a;
+            border: 1px solid #333;
+        }
+        .endpoint-card {
+            transition: all 0.3s ease;
+        }
+        .endpoint-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        .method-get { background: #10b981; }
+        .method-post { background: #3b82f6; }
+        .method-put { background: #f59e0b; }
+        .method-delete { background: #ef4444; }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white">
+    <!-- Header -->
+    <header class="glass border-b border-white/20 p-4">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <div class="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
+                    <i data-lucide="book-open" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold">ChittyOS API Documentation</h1>
+                    <p class="text-sm text-gray-300">Complete API reference and examples</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <a href="../service-registry-dashboard.html" class="glass px-4 py-2 rounded-lg hover:bg-white/10 transition-colors flex items-center space-x-2">
+                    <i data-lucide="network" class="w-4 h-4"></i>
+                    <span class="text-sm">Registry</span>
+                </a>
+                <a href="mcp.html" class="glass px-4 py-2 rounded-lg hover:bg-white/10 transition-colors flex items-center space-x-2">
+                    <i data-lucide="plug" class="w-4 h-4"></i>
+                    <span class="text-sm">MCP Docs</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto p-6">
+        <!-- Overview -->
+        <section class="mb-8">
+            <div class="glass p-6 rounded-xl">
+                <h2 class="text-2xl font-bold mb-4">ChittyOS API Overview</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-blue-400">15+</div>
+                        <div class="text-sm text-gray-400">API Endpoints</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-green-400">OAuth 2.0</div>
+                        <div class="text-sm text-gray-400">Authorization</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-purple-400">REST</div>
+                        <div class="text-sm text-gray-400">JSON API</div>
+                    </div>
+                </div>
+                <p class="text-gray-300">
+                    The ChittyOS API provides programmatic access to the complete ecosystem including service registry,
+                    AutoRAG AI services, session synchronization, and MCP server management. All endpoints use REST
+                    principles with JSON payloads and OAuth 2.0 authorization.
+                </p>
+            </div>
+        </section>
+
+        <!-- Base URL -->
+        <section class="mb-8">
+            <div class="glass p-6 rounded-xl">
+                <h3 class="text-xl font-bold mb-4">Base URL</h3>
+                <div class="code-block p-4 rounded-lg">
+                    <code class="text-green-400">https://registry.chitty.cc</code>
+                </div>
+                <p class="text-gray-400 mt-2">All API endpoints are relative to this base URL.</p>
+            </div>
+        </section>
+
+        <!-- Authentication -->
+        <section class="mb-8">
+            <div class="glass p-6 rounded-xl">
+                <h3 class="text-xl font-bold mb-4">Authentication</h3>
+                <p class="text-gray-300 mb-4">ChittyOS uses OAuth 2.0 for API authentication. Include your access token in the Authorization header:</p>
+                <div class="code-block p-4 rounded-lg mb-4">
+                    <code class="text-yellow-400">Authorization: Bearer YOUR_ACCESS_TOKEN</code>
+                </div>
+                <div class="bg-blue-500/20 border border-blue-500 rounded-lg p-4">
+                    <h4 class="font-bold text-blue-300 mb-2">Getting an Access Token</h4>
+                    <ol class="list-decimal list-inside text-blue-200 space-y-1">
+                        <li>Register your application at <code>/api/mcp/register</code></li>
+                        <li>Redirect users to <code>/oauth/authorize</code></li>
+                        <li>Exchange authorization code at <code>/oauth/token</code></li>
+                        <li>Use the access token for API calls</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+
+        <!-- API Endpoints -->
+        <section class="mb-8">
+            <h2 class="text-2xl font-bold mb-6">API Endpoints</h2>
+
+            <!-- Registry Endpoints -->
+            <div class="glass p-6 rounded-xl mb-6">
+                <h3 class="text-xl font-bold mb-4 flex items-center">
+                    <i data-lucide="database" class="w-5 h-5 mr-2"></i>
+                    Service Registry
+                </h3>
+                <div class="space-y-4">
+                    <!-- Get Registry -->
+                    <div class="endpoint-card glass p-4 rounded-lg">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center space-x-3">
+                                <span class="method-get px-3 py-1 rounded text-xs font-bold">GET</span>
+                                <code class="text-lg">/api/registry</code>
+                            </div>
+                            <button onclick="toggleDetails('registry-get')" class="text-gray-400 hover:text-white">
+                                <i data-lucide="chevron-down" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                        <p class="text-gray-300 mb-3">Get the complete service registry with all registered services categorized by type.</p>
+                        <div id="registry-get" class="hidden space-y-4">
+                            <div>
+                                <h5 class="font-bold mb-2">Required Scopes</h5>
+                                <div class="flex space-x-2">
+                                    <span class="px-2 py-1 bg-green-500/20 text-green-300 rounded text-xs">registry:read</span>
+                                </div>
+                            </div>
+                            <div>
+                                <h5 class="font-bold mb-2">Example Request</h5>
+                                <div class="code-block p-3 rounded text-sm">
+                                    <pre><code>curl -H "Authorization: Bearer YOUR_TOKEN" \
+  https://registry.chitty.cc/api/registry</code></pre>
+                                </div>
+                            </div>
+                            <div>
+                                <h5 class="font-bold mb-2">Example Response</h5>
+                                <div class="code-block p-3 rounded text-sm overflow-x-auto">
+                                    <pre><code>{
+  "timestamp": "2024-11-05T12:00:00Z",
+  "totalServices": 46,
+  "categories": {
+    "AI_SERVICES": {
+      "assistants": [...],
+      "workers": [...]
+    },
+    "TOOLS": {
+      "mcps": [...],
+      "utilities": [...]
+    },
+    "EXTERNAL_APIS": {...},
+    "CHITTYOS_MODULES": {...}
+  }
+}</code></pre>
+                                </div>
+                            </div>
+                            <button onclick="testEndpoint('GET', '/api/registry')" class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded text-sm">
+                                Test This Endpoint
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Register Service -->
+                    <div class="endpoint-card glass p-4 rounded-lg">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center space-x-3">
+                                <span class="method-post px-3 py-1 rounded text-xs font-bold">POST</span>
+                                <code class="text-lg">/api/register</code>
+                            </div>
+                            <button onclick="toggleDetails('register-post')" class="text-gray-400 hover:text-white">
+                                <i data-lucide="chevron-down" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                        <p class="text-gray-300 mb-3">Register a new service in the ChittyOS registry.</p>
+                        <div id="register-post" class="hidden space-y-4">
+                            <div>
+                                <h5 class="font-bold mb-2">Required Scopes</h5>
+                                <div class="flex space-x-2">
+                                    <span class="px-2 py-1 bg-blue-500/20 text-blue-300 rounded text-xs">services:register</span>
+                                </div>
+                            </div>
+                            <div>
+                                <h5 class="font-bold mb-2">Request Body</h5>
+                                <div class="code-block p-3 rounded text-sm">
+                                    <pre><code>{
+  "platform": "my-service",
+  "sessionData": {
+    "context": {
+      "type": "api",
+      "capabilities": ["read", "write"]
+    },
+    "endpoint": "https://my-service.com",
+    "source": "external-api"
+  }
+}</code></pre>
+                                </div>
+                            </div>
+                            <button onclick="testEndpoint('POST', '/api/register')" class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded text-sm">
+                                Test This Endpoint
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AutoRAG Endpoints -->
+            <div class="glass p-6 rounded-xl mb-6">
+                <h3 class="text-xl font-bold mb-4 flex items-center">
+                    <i data-lucide="brain" class="w-5 h-5 mr-2"></i>
+                    AutoRAG AI Services
+                </h3>
+                <div class="space-y-4">
+                    <!-- AutoRAG Query -->
+                    <div class="endpoint-card glass p-4 rounded-lg">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center space-x-3">
+                                <span class="method-post px-3 py-1 rounded text-xs font-bold">POST</span>
+                                <code class="text-lg">/api/autorag</code>
+                            </div>
+                            <button onclick="toggleDetails('autorag-post')" class="text-gray-400 hover:text-white">
+                                <i data-lucide="chevron-down" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                        <p class="text-gray-300 mb-3">Query the AutoRAG system with automatic context retrieval and AI generation.</p>
+                        <div id="autorag-post" class="hidden space-y-4">
+                            <div>
+                                <h5 class="font-bold mb-2">Request Body</h5>
+                                <div class="code-block p-3 rounded text-sm">
+                                    <pre><code>{
+  "query": "What is ChittyOS?",
+  "model": "@cf/meta/llama-3.1-8b-instruct",
+  "retrievalCount": 5,
+  "threshold": 0.7,
+  "sessionId": "optional-session-id"
+}</code></pre>
+                                </div>
+                            </div>
+                            <div>
+                                <h5 class="font-bold mb-2">Example Response</h5>
+                                <div class="code-block p-3 rounded text-sm">
+                                    <pre><code>{
+  "response": "ChittyOS is an advanced AI operating system...",
+  "metadata": {
+    "model": "@cf/meta/llama-3.1-8b-instruct",
+    "retrievedDocs": 3,
+    "relevantDocs": 2,
+    "sessionId": "session-123"
+  },
+  "sources": [...]
+}</code></pre>
+                                </div>
+                            </div>
+                            <button onclick="testEndpoint('POST', '/api/autorag')" class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded text-sm">
+                                Test This Endpoint
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Chat -->
+                    <div class="endpoint-card glass p-4 rounded-lg">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center space-x-3">
+                                <span class="method-post px-3 py-1 rounded text-xs font-bold">POST</span>
+                                <code class="text-lg">/api/chat</code>
+                            </div>
+                            <button onclick="toggleDetails('chat-post')" class="text-gray-400 hover:text-white">
+                                <i data-lucide="chevron-down" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                        <p class="text-gray-300 mb-3">Direct chat with AI models with session context.</p>
+                        <div id="chat-post" class="hidden space-y-4">
+                            <div>
+                                <h5 class="font-bold mb-2">Request Body</h5>
+                                <div class="code-block p-3 rounded text-sm">
+                                    <pre><code>{
+  "messages": [
+    {"role": "user", "content": "Hello, ChittyOS!"}
+  ],
+  "model": "@cf/meta/llama-3.1-8b-instruct",
+  "sessionId": "optional-session-id"
+}</code></pre>
+                                </div>
+                            </div>
+                            <button onclick="testEndpoint('POST', '/api/chat')" class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded text-sm">
+                                Test This Endpoint
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Vector Search -->
+                    <div class="endpoint-card glass p-4 rounded-lg">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center space-x-3">
+                                <span class="method-post px-3 py-1 rounded text-xs font-bold">POST</span>
+                                <code class="text-lg">/api/search</code>
+                            </div>
+                            <button onclick="toggleDetails('search-post')" class="text-gray-400 hover:text-white">
+                                <i data-lucide="chevron-down" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                        <p class="text-gray-300 mb-3">Semantic vector search across stored knowledge.</p>
+                        <div id="search-post" class="hidden space-y-4">
+                            <div>
+                                <h5 class="font-bold mb-2">Request Body</h5>
+                                <div class="code-block p-3 rounded text-sm">
+                                    <pre><code>{
+  "query": "evidence files",
+  "topK": 5,
+  "threshold": 0.7
+}</code></pre>
+                                </div>
+                            </div>
+                            <button onclick="testEndpoint('POST', '/api/search')" class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded text-sm">
+                                Test This Endpoint
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- OAuth Endpoints -->
+            <div class="glass p-6 rounded-xl mb-6">
+                <h3 class="text-xl font-bold mb-4 flex items-center">
+                    <i data-lucide="shield" class="w-5 h-5 mr-2"></i>
+                    OAuth Authorization
+                </h3>
+                <div class="space-y-4">
+                    <div class="endpoint-card glass p-4 rounded-lg">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center space-x-3">
+                                <span class="method-get px-3 py-1 rounded text-xs font-bold">GET</span>
+                                <code class="text-lg">/oauth/authorize</code>
+                            </div>
+                        </div>
+                        <p class="text-gray-300 mb-3">Initiate OAuth authorization flow.</p>
+                        <div class="bg-yellow-500/20 border border-yellow-500 rounded p-3">
+                            <p class="text-yellow-200 text-sm">This endpoint redirects users to complete authorization in their browser.</p>
+                        </div>
+                    </div>
+
+                    <div class="endpoint-card glass p-4 rounded-lg">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center space-x-3">
+                                <span class="method-post px-3 py-1 rounded text-xs font-bold">POST</span>
+                                <code class="text-lg">/oauth/token</code>
+                            </div>
+                        </div>
+                        <p class="text-gray-300 mb-3">Exchange authorization code for access token.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- API Testing Tool -->
+        <section class="mb-8">
+            <div class="glass p-6 rounded-xl">
+                <h3 class="text-xl font-bold mb-4">API Testing Tool</h3>
+                <div id="api-tester" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Method & Endpoint</label>
+                            <div class="flex space-x-2">
+                                <select id="test-method" class="px-3 py-2 bg-black/30 border border-gray-600 rounded text-white">
+                                    <option value="GET">GET</option>
+                                    <option value="POST">POST</option>
+                                    <option value="PUT">PUT</option>
+                                    <option value="DELETE">DELETE</option>
+                                </select>
+                                <input type="text" id="test-endpoint" placeholder="/api/registry" class="flex-1 px-3 py-2 bg-black/30 border border-gray-600 rounded text-white">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Authorization Token</label>
+                            <input type="text" id="test-token" placeholder="your-access-token" class="w-full px-3 py-2 bg-black/30 border border-gray-600 rounded text-white">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Request Body (JSON)</label>
+                        <textarea id="test-body" rows="6" placeholder='{"key": "value"}' class="w-full px-3 py-2 bg-black/30 border border-gray-600 rounded text-white font-mono text-sm"></textarea>
+                    </div>
+                    <button onclick="executeTest()" class="bg-green-500 hover:bg-green-600 px-6 py-3 rounded font-bold">
+                        Execute Request
+                    </button>
+                    <div id="test-result" class="hidden">
+                        <h4 class="font-bold mb-2">Response</h4>
+                        <pre id="test-response" class="code-block p-4 rounded text-sm overflow-x-auto"></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        function toggleDetails(id) {
+            const element = document.getElementById(id);
+            element.classList.toggle('hidden');
+
+            // Rotate chevron
+            const button = document.querySelector(`[onclick="toggleDetails('${id}')"] i`);
+            button.classList.toggle('rotate-180');
+        }
+
+        function testEndpoint(method, endpoint) {
+            document.getElementById('test-method').value = method;
+            document.getElementById('test-endpoint').value = endpoint;
+
+            // Set example body for POST requests
+            if (method === 'POST') {
+                const exampleBodies = {
+                    '/api/autorag': '{\n  "query": "What is ChittyOS?",\n  "retrievalCount": 5\n}',
+                    '/api/chat': '{\n  "messages": [{"role": "user", "content": "Hello!"}]\n}',
+                    '/api/search': '{\n  "query": "evidence files",\n  "topK": 5\n}',
+                    '/api/register': '{\n  "platform": "my-service",\n  "sessionData": {\n    "context": {"type": "api"},\n    "endpoint": "https://my-service.com"\n  }\n}'
+                };
+                document.getElementById('test-body').value = exampleBodies[endpoint] || '';
+            } else {
+                document.getElementById('test-body').value = '';
+            }
+
+            // Scroll to tester
+            document.getElementById('api-tester').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function executeTest() {
+            const method = document.getElementById('test-method').value;
+            const endpoint = document.getElementById('test-endpoint').value;
+            const token = document.getElementById('test-token').value;
+            const body = document.getElementById('test-body').value;
+
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const requestOptions = {
+                method,
+                headers
+            };
+
+            if (method !== 'GET' && body) {
+                requestOptions.body = body;
+            }
+
+            try {
+                const response = await fetch(endpoint, requestOptions);
+                const result = await response.text();
+
+                let formattedResult;
+                try {
+                    formattedResult = JSON.stringify(JSON.parse(result), null, 2);
+                } catch {
+                    formattedResult = result;
+                }
+
+                document.getElementById('test-response').textContent =
+                    `Status: ${response.status} ${response.statusText}\n\n${formattedResult}`;
+                document.getElementById('test-result').classList.remove('hidden');
+            } catch (error) {
+                document.getElementById('test-response').textContent = `Error: ${error.message}`;
+                document.getElementById('test-result').classList.remove('hidden');
+            }
+        }
+
+        // Auto-expand first endpoint
+        document.addEventListener('DOMContentLoaded', () => {
+            toggleDetails('registry-get');
+        });
+    </script>
+</body>
+</html>

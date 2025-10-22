@@ -1,0 +1,23 @@
+name = "chittytrust-worker"
+main = "src/index.ts"
+compatibility_date = "2024-09-25"
+account_id = "0bc21e3a5a9de1a4cc843be9c3e98121"
+
+[vars]
+ENVIRONMENT = "production"
+
+# D1 database binding
+[[d1_databases]]
+binding = "D1"
+database_name = "chittytrust"
+database_id = "767a18dd-bb7b-4161-ab5a-9ca0a0f35e59"
+
+# KV namespace binding
+[[kv_namespaces]]
+binding = "KV"
+id = "d44b9e0db91f4a228cc1c6720e596b95"
+
+# Routes configuration
+routes = [
+  { pattern = "trust.chitty.cc", custom_domain = true }
+]

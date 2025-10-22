@@ -1,0 +1,618 @@
+{
+  "inventory_date": "2025-10-22T09:25:00Z",
+  "accounts": [
+    {
+      "id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+      "name": "ChittyCorp LLC",
+      "primary_use": "ChittyOS Production",
+      "workers": [
+        {
+          "name": "chittycharge",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./.archive/root-duplicates/chittycharge/wrangler.toml",
+          "purpose": "Archived/Quarantined - likely deprecated",
+          "routes": [
+            "charge.chitty.cc/*"
+          ],
+          "status": "archived",
+          "action": "kill-candidate",
+          "environments": [
+            "dev"
+          ]
+        },
+        {
+          "name": "chittyconnect",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./.archive/root-duplicates/chittyconnect/wrangler.toml",
+          "purpose": "MCP server & GPT connector",
+          "routes": [
+            "connect.chitty.cc/*"
+          ],
+          "status": "configured",
+          "action": "keep-critical",
+          "environments": [
+            "dev"
+          ]
+        },
+        {
+          "name": "chittymcp",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./.archive/root-duplicates/chittymcp/wrangler.toml",
+          "purpose": "Model Context Protocol server",
+          "routes": [
+            "mcp.chitty.cc/*"
+          ],
+          "status": "configured",
+          "action": "keep",
+          "environments": [
+            "dev"
+          ]
+        },
+        {
+          "name": "chittypm",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-data/chittychat/wrangler.toml",
+          "purpose": "Unknown",
+          "routes": [
+            "chittypm.yourdomain.com/*"
+          ],
+          "status": "configured",
+          "action": "keep",
+          "environments": [
+            "dev"
+          ]
+        },
+        {
+          "name": "chittyos-multipart",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-data/workers/wrangler-multipart.toml",
+          "purpose": "Unknown",
+          "routes": [
+            "No routes configured"
+          ],
+          "status": "configured",
+          "action": "keep",
+          "environments": [
+            "dev"
+          ]
+        },
+        {
+          "name": "chittyos-ai-processor",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-data/workers/wrangler-ai-processor.toml",
+          "purpose": "Unknown",
+          "routes": [
+            "No routes configured"
+          ],
+          "status": "configured",
+          "action": "keep",
+          "environments": [
+            "dev"
+          ]
+        },
+        {
+          "name": "chittyos-ai-processor",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-data/workers/wrangler-updated.toml",
+          "purpose": "Unknown",
+          "routes": [
+            "No routes configured"
+          ],
+          "status": "configured",
+          "action": "keep",
+          "environments": [
+            "dev"
+          ]
+        },
+        {
+          "name": "chittyledger-sync",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-data/workers/wrangler-ledger.toml",
+          "purpose": "Cross-platform synchronization",
+          "routes": [
+            "No routes configured"
+          ],
+          "status": "configured",
+          "action": "review",
+          "environments": [
+            "dev"
+          ]
+        },
+        {
+          "name": "chittyos-ai-processor",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-data/workers/wrangler.toml",
+          "purpose": "Unknown",
+          "routes": [
+            "No routes configured"
+          ],
+          "status": "configured",
+          "action": "keep",
+          "environments": [
+            "dev"
+          ]
+        },
+        {
+          "name": "chittypass-core",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-integrations/notion/chittypass-deployment-package/wrangler.toml",
+          "purpose": "Unknown",
+          "routes": [
+            "chittypass.com/*"
+          ],
+          "status": "configured",
+          "action": "keep",
+          "environments": [
+            "dev",
+            "staging",
+            "production"
+          ]
+        },
+        {
+          "name": "chittybrand-schema-sync",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-apps/chittybrand/wrangler-schema-sync.toml",
+          "purpose": "Cross-platform synchronization",
+          "routes": [
+            "No routes configured"
+          ],
+          "status": "configured",
+          "action": "review",
+          "environments": [
+            "dev",
+            "staging",
+            "production"
+          ]
+        },
+        {
+          "name": "chittybrand-cdn",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-apps/chittybrand/wrangler.toml",
+          "purpose": "Branding & CDN",
+          "routes": [
+            "No routes configured"
+          ],
+          "status": "configured",
+          "action": "review",
+          "environments": [
+            "dev",
+            "staging",
+            "production"
+          ]
+        },
+        {
+          "name": "chittyconnect",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-apps/chittyconnect/wrangler.toml",
+          "purpose": "MCP server & GPT connector",
+          "routes": [
+            "connect.chitty.cc/*"
+          ],
+          "status": "configured",
+          "action": "keep-critical",
+          "environments": [
+            "dev",
+            "staging",
+            "production"
+          ]
+        },
+        {
+          "name": "chittyscore-worker",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-apps/chittyscore/wrangler.toml",
+          "purpose": "Unknown",
+          "routes": [
+            "score.chitty.cc/*"
+          ],
+          "status": "configured",
+          "action": "keep",
+          "environments": [
+            "dev"
+          ]
+        },
+        {
+          "name": "chittyauth-mcp",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-apps/chittyauth/wrangler-mcp.toml",
+          "purpose": "Authentication & OAuth",
+          "routes": [
+            "auth-mcp.chitty.cc/*",
+            "auth-mcp.chitty.cc/*"
+          ],
+          "status": "configured",
+          "action": "keep-critical",
+          "environments": [
+            "dev",
+            "staging",
+            "production"
+          ]
+        },
+        {
+          "name": "chittyauth",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-apps/chittyauth/wrangler.toml",
+          "purpose": "Authentication & OAuth",
+          "routes": [
+            "auth.chitty.cc/*"
+          ],
+          "status": "configured",
+          "action": "keep-critical",
+          "environments": [
+            "dev",
+            "staging",
+            "production"
+          ]
+        },
+        {
+          "name": "chittychain-worker",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-services/chittychain/wrangler.toml",
+          "purpose": "Blockchain & ledger",
+          "routes": [
+            "chain.chitty.cc/*"
+          ],
+          "status": "configured",
+          "action": "review",
+          "environments": [
+            "dev"
+          ]
+        },
+        {
+          "name": "chittyos-pipeline-orchestrator",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-services/pipeline-orchestrator/wrangler.toml",
+          "purpose": "Pipeline orchestration",
+          "routes": [
+            "No routes configured"
+          ],
+          "status": "configured",
+          "action": "review",
+          "environments": [
+            "dev",
+            "staging",
+            "production"
+          ]
+        },
+        {
+          "name": "chittyconnect",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-services/chittyconnect/wrangler.toml",
+          "purpose": "MCP server & GPT connector",
+          "routes": [
+            "connect.chitty.cc/*"
+          ],
+          "status": "configured",
+          "action": "keep-critical",
+          "environments": [
+            "dev",
+            "staging",
+            "production"
+          ]
+        },
+        {
+          "name": "chittyos-todos",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-services/chittyos-todos/wrangler.toml",
+          "purpose": "Todo management & tracking",
+          "routes": [
+            "todos.chitty.cc/*"
+          ],
+          "status": "configured",
+          "action": "review",
+          "environments": [
+            "dev",
+            "staging",
+            "production"
+          ]
+        },
+        {
+          "name": "chittygov-service",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-services/chittygov/wrangler.toml",
+          "purpose": "Governance & compliance",
+          "routes": [
+            "No routes configured"
+          ],
+          "status": "configured",
+          "action": "keep",
+          "environments": [
+            "dev",
+            "staging",
+            "production"
+          ]
+        },
+        {
+          "name": "chittysync-orchestrator",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-services/chittysync/tools/workflows/wrangler.toml",
+          "purpose": "Cross-platform synchronization",
+          "routes": [
+            "No routes configured"
+          ],
+          "status": "configured",
+          "action": "review",
+          "environments": [
+            "dev"
+          ]
+        },
+        {
+          "name": "chittysync-hub",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-services/chittysync/worker/wrangler.toml",
+          "purpose": "Cross-platform synchronization",
+          "routes": [
+            "gateway.chitty.cc/api/todos/*",
+            "gateway.chitty.cc/api/memory/*",
+            "gateway.chitty.cc/api/directions/*"
+          ],
+          "status": "configured",
+          "action": "review",
+          "environments": [
+            "dev",
+            "staging",
+            "production"
+          ]
+        },
+        {
+          "name": "chittytrust-worker",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-services/chittytrust/wrangler.toml",
+          "purpose": "Trust & certification",
+          "routes": [
+            "trust.chitty.cc"
+          ],
+          "status": "configured",
+          "action": "review",
+          "environments": [
+            "dev"
+          ]
+        },
+        {
+          "name": "chittyos-unified-platform",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-services/chittychat/wrangler.optimized.toml",
+          "purpose": "Core Platform - Unified worker for 34+ services",
+          "routes": [
+            "gateway.chitty.cc/*",
+            "sync.chitty.cc/*",
+            "api.chitty.cc/*",
+            "ai.chitty.cc/*",
+            "langchain.chitty.cc/*",
+            "portal.chitty.cc/*",
+            "cases.chitty.cc/*",
+            "docs.chitty.cc/*",
+            "registry.chitty.cc/*",
+            "canon.chitty.cc/*",
+            "verify.chitty.cc/*",
+            "ontology.chitty.cc/*",
+            "chat.chitty.cc/*",
+            "projects.chitty.cc/*",
+            "initiate.chitty.cc/*",
+            "beacon.chitty.cc/*",
+            "email.chitty.cc/*",
+            "viewer.chitty.cc/*",
+            "staging.chitty.cc/*"
+          ],
+          "status": "configured",
+          "action": "keep-critical",
+          "environments": [
+            "dev",
+            "staging",
+            "production"
+          ]
+        },
+        {
+          "name": "chittyconnect-ui",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-services/chittychat/integrations/chittyconnect-ui/wrangler.toml",
+          "purpose": "MCP server & GPT connector",
+          "routes": [
+            "No routes configured"
+          ],
+          "status": "configured",
+          "action": "keep-critical",
+          "environments": [
+            "dev"
+          ]
+        },
+        {
+          "name": "chittyos-evidence",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-services/chittychat/wrangler-evidence.toml",
+          "purpose": "Evidence ingestion & pipeline",
+          "routes": [
+            "evidence.chitty.cc/*",
+            "evidence-staging.chitty.cc/*"
+          ],
+          "status": "configured",
+          "action": "keep",
+          "environments": [
+            "dev"
+          ]
+        },
+        {
+          "name": "chittyos-dashboard",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-services/.quarantine/chittydashboard/wrangler.toml",
+          "purpose": "Archived/Quarantined - likely deprecated",
+          "routes": [
+            "registry.chitty.cc/*"
+          ],
+          "status": "archived",
+          "action": "kill-candidate",
+          "environments": [
+            "dev",
+            "staging",
+            "production"
+          ]
+        },
+        {
+          "name": "chittyportal-consolidated",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-services/.quarantine/ChittyPortal/wrangler.toml",
+          "purpose": "Archived/Quarantined - likely deprecated",
+          "routes": [
+            "router.chitty.cc/*",
+            "gateway.chitty.cc/*",
+            "mcp.chitty.cc/*",
+            "mcp.chitty.cc/litigation/*",
+            "sync.chitty.cc/*",
+            "api.chitty.cc/*",
+            "ai.chitty.cc/*",
+            "langchain.chitty.cc/*",
+            "cases.chitty.cc/*",
+            "agents.chitty.cc/*",
+            "unified.chitty.cc/*",
+            "id.chitty.cc/*",
+            "auth.chitty.cc/*",
+            "registry.chitty.cc/*",
+            "canon.chitty.cc/*",
+            "verify.chitty.cc/*",
+            "chat.chitty.cc/*",
+            "beacon.chitty.cc/*",
+            "email.chitty.cc/*",
+            "viewer.chitty.cc/*",
+            "portal.chitty.cc/*",
+            "staging-portal.chitty.cc/*",
+            "staging.chitty.cc/*"
+          ],
+          "status": "archived",
+          "action": "kill-candidate",
+          "environments": [
+            "dev",
+            "staging",
+            "production"
+          ]
+        },
+        {
+          "name": "chittycleaner-web",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-services/.quarantine/chittycleaner/web/wrangler.toml",
+          "purpose": "Archived/Quarantined - likely deprecated",
+          "routes": [
+            "cleaner.chitty.cc",
+            "*.cleaner.chitty.cc"
+          ],
+          "status": "archived",
+          "action": "kill-candidate",
+          "environments": [
+            "dev",
+            "staging",
+            "production"
+          ]
+        },
+        {
+          "name": "chittyid-production",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-services/chittyid-worker/wrangler.toml",
+          "purpose": "Identity & ChittyID minting",
+          "routes": [
+            "id.chitty.cc/*"
+          ],
+          "status": "configured",
+          "action": "keep-critical",
+          "environments": [
+            "dev"
+          ]
+        },
+        {
+          "name": "registry-chitty-cc",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-services/chittyregistry/domains/registry-worker/wrangler.toml",
+          "purpose": "Service discovery & health monitoring",
+          "routes": [
+            "registry.chitty.cc/*"
+          ],
+          "status": "configured",
+          "action": "keep-critical",
+          "environments": [
+            "dev",
+            "staging",
+            "production"
+          ]
+        },
+        {
+          "name": "chitty-public-mcp-production",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-services/chittyregistry/domains/wrangler.toml",
+          "purpose": "Model Context Protocol server",
+          "routes": [
+            "api.chitty.cc/*"
+          ],
+          "status": "configured",
+          "action": "keep",
+          "environments": [
+            "dev"
+          ]
+        },
+        {
+          "name": "chittyregistry",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-services/chittyregistry/wrangler.toml",
+          "purpose": "Service discovery & health monitoring",
+          "routes": [
+            "registry.chitty.cc/*"
+          ],
+          "status": "configured",
+          "action": "keep-critical",
+          "environments": [
+            "dev",
+            "staging",
+            "production"
+          ]
+        },
+        {
+          "name": "chittycertify",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-services/chittycertify/wrangler.toml",
+          "purpose": "Unknown",
+          "routes": [
+            "certify.chitty.cc/*"
+          ],
+          "status": "configured",
+          "action": "keep",
+          "environments": [
+            "dev"
+          ]
+        },
+        {
+          "name": "chittysweep",
+          "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+          "config_path": "./chittyos-services/chittysweep/wrangler.toml",
+          "purpose": "Unknown",
+          "routes": [
+            "sweep.chitty.cc/*"
+          ],
+          "status": "configured",
+          "action": "keep",
+          "environments": [
+            "dev",
+            "staging",
+            "production"
+          ]
+        }
+      ],
+      "worker_count": 36,
+      "kill_candidates": 4,
+      "critical": 10
+    },
+    {
+      "id": "84f0f32886f1d6196380fe6cbe9656a8",
+      "name": "Digital Dossier",
+      "primary_use": "Evidence & Legal",
+      "workers": [],
+      "worker_count": 0,
+      "kill_candidates": 0,
+      "critical": 0
+    },
+    {
+      "id": "29f3317d22751a30f4aeda85d5b4f839",
+      "name": "Furnished-Condos",
+      "primary_use": "Real Estate",
+      "workers": [],
+      "worker_count": 0,
+      "kill_candidates": 0,
+      "critical": 0
+    }
+  ]
+}

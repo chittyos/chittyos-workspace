@@ -1,0 +1,19 @@
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+.env
+*.log
+.DS_Store
+
+# Cloudflare
+wrangler.toml.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build outputs
+*.tsbuildinfo

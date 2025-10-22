@@ -1,0 +1,131 @@
+# ChittyPortal - Consolidated Gateway Worker
+# Consolidates all ChittyOS services from account ending in 121
+# Including: Ultimate Worker, MCP Portal, Auth, Platform services
+
+name = "chittyportal-consolidated"
+main = "src/portal-worker.js"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+account_id = "0bc21e3a5a9de1a4cc843be9c3e98121"
+
+# Global AI binding
+[ai]
+binding = "AI"
+
+# Global variables consolidating all services
+[vars]
+# Portal Configuration
+PORTAL_VERSION = "1.0.0"
+ENVIRONMENT = "production"
+PROJECT_ID = "chittyportal"
+SERVICE_NAME = "ChittyPortal Consolidated Gateway"
+
+# AI Configuration (from ultimate worker)
+AI_GATEWAY_VERSION = "2.1.0-ai"
+AI_MODEL_PRIMARY = "@cf/meta/llama-4-scout-17b-16e-instruct"
+AI_MODEL_SECONDARY = "@cf/openai/gpt-oss-120b"
+AI_MODEL_REASONING = "@cf/google/gemma-3-12b-it"
+AI_MODEL_VISION = "@cf/meta/llama-3.2-11b-vision-instruct"
+AI_MODEL_AUDIO = "@cf/openai/whisper"
+AI_MODEL_ENDPOINT = "@cf/meta/llama-4-scout-17b-16e-instruct"
+AI_DEBUG = "false"
+
+# Service Configuration
+CHITTY_ORG = "ChittyOS"
+LOG_LEVEL = "WARN"
+ENABLE_ANALYTICS = "true"
+RANDOMNESS_BEACON = "true"
+VERSION_MANAGEMENT = "enterprise"
+REGION = "us-west"
+
+# Port Configuration
+MCP_PORT = "3000"
+AGENT_COORDINATION_PORT = "8080"
+REDIS_PORT = "6379"
+
+# Service URLs
+CHITTYROUTER_URL = "https://router.chitty.cc"
+SESSION_REPO = "chittychat-sessions"
+
+# ChittyOS Platform Configuration (from platform worker)
+PLATFORM_VERSION = "1.0.0"
+CHITTYOS_ACCOUNT_ID = "0bc21e3a5a9de1a4cc843be9c3e98121"
+MAX_CONCURRENT_REQUESTS = "1000"
+CACHE_TTL = "3600"
+DEFAULT_MODEL = "@cf/meta/llama-3.1-8b-instruct"
+EMBEDDING_MODEL = "@cf/baai/bge-base-en-v1.5"
+ROUTER_VERSION = "2.1.0-ai"
+
+# Production Environment - Consolidated Routes
+[env.production]
+name = "chittyportal-production"
+routes = [
+  # Router & Gateway Services (from ultimate worker)
+  { pattern = "router.chitty.cc/*", zone_name = "chitty.cc" },
+  { pattern = "gateway.chitty.cc/*", zone_name = "chitty.cc" },
+
+  # MCP Services (from MCP portal/auth)
+  { pattern = "mcp.chitty.cc/*", zone_name = "chitty.cc" },
+  { pattern = "mcp.chitty.cc/litigation/*", zone_name = "chitty.cc" },
+
+  # Core Platform Services (from platform worker)
+  { pattern = "sync.chitty.cc/*", zone_name = "chitty.cc" },
+  { pattern = "api.chitty.cc/*", zone_name = "chitty.cc" },
+
+  # AI Infrastructure
+  { pattern = "ai.chitty.cc/*", zone_name = "chitty.cc" },
+  { pattern = "langchain.chitty.cc/*", zone_name = "chitty.cc" },
+  { pattern = "cases.chitty.cc/*", zone_name = "chitty.cc" },
+  { pattern = "agents.chitty.cc/*", zone_name = "chitty.cc" },
+  { pattern = "unified.chitty.cc/*", zone_name = "chitty.cc" },
+
+  # Identity & Auth (consolidated auth services)
+  { pattern = "id.chitty.cc/*", zone_name = "chitty.cc" },
+  { pattern = "auth.chitty.cc/*", zone_name = "chitty.cc" },
+
+  # Service Mesh
+  { pattern = "registry.chitty.cc/*", zone_name = "chitty.cc" },
+  { pattern = "canon.chitty.cc/*", zone_name = "chitty.cc" },
+  { pattern = "verify.chitty.cc/*", zone_name = "chitty.cc" },
+  { pattern = "chat.chitty.cc/*", zone_name = "chitty.cc" },
+
+  # Monitoring & Utilities
+  { pattern = "beacon.chitty.cc/*", zone_name = "chitty.cc" },
+  { pattern = "email.chitty.cc/*", zone_name = "chitty.cc" },
+  { pattern = "viewer.chitty.cc/*", zone_name = "chitty.cc" },
+
+  # Portal Entry Point
+  { pattern = "portal.chitty.cc/*", zone_name = "chitty.cc" }
+]
+
+[env.production.vars]
+ENVIRONMENT = "production"
+DEBUG_MODE = "false"
+RATE_LIMIT_ENABLED = "true"
+SECURITY_LEVEL = "strict"
+
+# Staging Environment
+[env.staging]
+name = "chittyportal-staging"
+routes = [
+  { pattern = "staging-portal.chitty.cc/*", zone_name = "chitty.cc" },
+  { pattern = "staging.chitty.cc/*", zone_name = "chitty.cc" }
+]
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
+DEBUG_MODE = "true"
+RATE_LIMIT_ENABLED = "false"
+
+# Development Environment
+[env.development]
+name = "chittyportal-dev"
+
+[env.development.vars]
+ENVIRONMENT = "development"
+DEBUG_MODE = "true"
+RATE_LIMIT_ENABLED = "false"
+
+# Cron triggers for health monitoring
+[triggers]
+crons = ["*/1 * * * *"]  # Health check every minute

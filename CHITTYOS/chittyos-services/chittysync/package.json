@@ -1,0 +1,50 @@
+{
+  "name": "chittysync",
+  "version": "2.0.0",
+  "description": "ChittySync Universal Orchestration Hub - Git-like omnidirectional todo synchronization for ChittyOS",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npm run dev --workspace=worker",
+    "deploy": "npm run deploy --workspace=worker",
+    "test": "npm run test --workspace=worker",
+    "db:migrate": "npm run db:migrate --workspace=worker",
+    "db:migrate:production": "npm run db:migrate:production --workspace=worker",
+    "workflows:deploy": "cd tools/workflows && wrangler deploy --env sync-orchestrator && wrangler deploy --env health-monitor && wrangler deploy --env deployment-manager && wrangler deploy --env alert-router",
+    "workflows:dev": "cd tools/workflows && wrangler dev sync-orchestrator.js --env sync-orchestrator",
+    "workflows:tail": "cd tools/workflows && wrangler tail",
+    "cli:install": "cd tools/cli && npm install && npm link",
+    "cli:uninstall": "cd tools/cli && npm unlink",
+    "sync:all": "chittysync sync --all",
+    "sync:google": "chittysync sync google",
+    "sync:cloudflare": "chittysync sync cloudflare",
+    "sync:github": "chittysync sync github",
+    "deploy:all": "chittysync deploy --batch",
+    "status": "chittysync status",
+    "health": "chittysync health",
+    "setup": "npm install && npm run cli:install && npm run db:migrate",
+    "clean": "rm -rf node_modules tools/cli/node_modules worker/node_modules"
+  },
+  "workspaces": [
+    "worker",
+    "tools/cli"
+  ],
+  "keywords": [
+    "chittysync",
+    "chittyos",
+    "orchestration",
+    "sync",
+    "todos",
+    "cloudflare-workers"
+  ],
+  "author": "ChittyOS",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chittyos/chittyos"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240529.0",
+    "wrangler": "^3.57.1"
+  }
+}

@@ -1,0 +1,33 @@
+# Wrangler configuration for ChittyCertify Service
+
+name = "chittycertify"
+main = "src/index.ts"
+compatibility_date = "2024-09-25"
+compatibility_flags = ["nodejs_compat"]
+account_id = "0bc21e3a5a9de1a4cc843be9c3e98121"
+
+# KV Namespace for certificate storage
+[[kv_namespaces]]
+binding = "CERTIFICATES"
+id = "3e488917c0ee43d19b3074f37d79f414"
+
+# Environment variables for production
+[vars]
+ENVIRONMENT = "production"
+CHITTYID_SERVICE = "https://id.chitty.cc"
+CHITTYID_SERVICE_URL = "https://id.chitty.cc"
+REGISTRY_SERVICE_URL = "https://registry.chitty.cc"
+CHITTYOS_ACCOUNT_ID = "bbf9fcd845e78035b7a135c481e88541"
+CHITTYOS_DOMAIN = "chitty.cc"
+
+# Secrets (set via wrangler secret put)
+# CHITTY_ID_TOKEN - Authentication token for ChittyID service
+
+# Routes configuration
+[[routes]]
+pattern = "certify.chitty.cc/*"
+zone_name = "chitty.cc"
+
+# Analytics and logging
+[observability]
+enabled = true

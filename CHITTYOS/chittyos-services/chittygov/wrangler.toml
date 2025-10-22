@@ -1,0 +1,28 @@
+name = "chittygov-service"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+
+# Production environment
+[env.production]
+name = "chittygov-production"
+vars = { ENVIRONMENT = "production" }
+
+# D1 Database for compliance records
+[[d1_databases]]
+binding = "DB"
+database_name = "chittygov-compliance"
+database_id = "TBD"
+
+[[d1_databases.migrations]]
+tag = "v1"
+new_classes = ["ComplianceRecord", "AuditTrail", "Evidence"]
+
+# KV for caching
+[[kv_namespaces]]
+binding = "CACHE"
+id = "TBD"
+
+# Environment variables (set via secrets)
+# CHITTY_ID_TOKEN - ChittyID API token
+# CHITTY_CANON_URL - ChittyCanon service URL
+# CHITTY_REGISTER_URL - ChittyRegister service URL

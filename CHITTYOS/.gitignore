@@ -1,0 +1,23 @@
+# ChittyOS root ignore
+node_modules/
+.env
+.env.local
+.wrangler/
+dist/
+build/
+coverage/
+*.log
+.DS_Store
+.cache/
+tmp/
+/.claude/
+
+# Editor/OS
+.idea/
+.vscode/
+*.swp
+
+# Test outputs
+*.coverage
+test-results.xml
+

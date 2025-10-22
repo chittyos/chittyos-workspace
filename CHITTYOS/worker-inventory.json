@@ -1,0 +1,23 @@
+{
+  "inventory_date": "2025-10-22T09:25:00Z",
+  "accounts": [
+    {
+      "id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+      "name": "ChittyCorp LLC",
+      "primary_use": "ChittyOS Production",
+      "workers": []
+    },
+    {
+      "id": "84f0f32886f1d6196380fe6cbe9656a8", 
+      "name": "Digital Dossier",
+      "primary_use": "Evidence & Legal",
+      "workers": []
+    },
+    {
+      "id": "29f3317d22751a30f4aeda85d5b4f839",
+      "name": "Furnished-Condos", 
+      "primary_use": "Real Estate",
+      "workers": []
+    }
+  ]
+}

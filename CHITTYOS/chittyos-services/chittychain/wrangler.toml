@@ -1,0 +1,18 @@
+name = "chittychain-worker"
+main = "src/index.ts"
+compatibility_date = "2024-09-25"
+account_id = "0bc21e3a5a9de1a4cc843be9c3e98121"
+
+[vars]
+ENVIRONMENT = "production"
+SERVICE_NAME = "chittychain"
+
+[[d1_databases]]
+binding = "D1"
+database_name = "chitty-media-db"
+database_id = "9a64f22a-5368-4b01-85f1-b97a01db17e9"
+
+# Custom domain routing
+[[routes]]
+pattern = "chain.chitty.cc/*"
+zone_name = "chitty.cc"

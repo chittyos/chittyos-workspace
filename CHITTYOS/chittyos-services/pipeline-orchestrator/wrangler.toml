@@ -1,0 +1,44 @@
+name = "chittyos-pipeline-orchestrator"
+main = "src/index.ts"
+compatibility_date = "2025-01-15"
+workflows_enabled = true
+
+[env.staging]
+name = "chittyos-pipeline-orchestrator-staging"
+route = "pipeline-staging.chitty.cc/*"
+
+[env.production]
+name = "chittyos-pipeline-orchestrator-production"
+route = "pipeline.chitty.cc/*"
+
+[[workflows]]
+name = "create-project"
+script_name = "create-project-workflow"
+
+[[workflows]]
+name = "progress-stage"
+script_name = "progress-stage-workflow"
+
+[[workflows]]
+name = "ai-develop"
+script_name = "ai-develop-workflow"
+
+[[durable_objects.bindings]]
+name = "PIPELINE_STATE"
+class_name = "PipelineState"
+script_name = "chittyos-pipeline-orchestrator"
+
+[[durable_objects.bindings]]
+name = "PROJECT_STORAGE"
+class_name = "ProjectStorage"
+script_name = "chittyos-pipeline-orchestrator"
+
+[[ai]]
+binding = "AI"
+
+[ai.gateway]
+id = "chittyos-ai-gateway"
+binding = "AI_GATEWAY"
+
+[vars]
+PIPELINE_STAGES = "00-intake,01-scoped,02-active,03-review,04-complete,05-archived"

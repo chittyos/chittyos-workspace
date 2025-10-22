@@ -1,0 +1,74 @@
+name: Deploy Schema to schema.chitty.cc
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'schema.chitty.cc.json'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup deployment structure
+      run: |
+        chmod +x deploy-schema.sh
+        ./deploy-schema.sh
+
+    - name: Deploy to Netlify
+      uses: nwtgck/actions-netlify@v2.0
+      with:
+        publish-dir: './deploy'
+        production-branch: main
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        deploy-message: "Deploy schema v${{ github.sha }}"
+        enable-pull-request-comment: false
+        enable-commit-comment: true
+        overwrites-pull-request-comment: true
+        alias: schema-chitty-cc
+      env:
+        NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+
+    # Alternative: Deploy to GitHub Pages
+    - name: Deploy to GitHub Pages
+      if: false  # Enable by setting to true
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./deploy
+        cname: schema.chitty.cc
+
+    # Alternative: Deploy to S3
+    - name: Deploy to AWS S3
+      if: false  # Enable by setting to true
+      uses: jakejarvis/s3-sync-action@master
+      with:
+        args: --acl public-read --follow-symlinks --delete
+      env:
+        AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: 'us-east-1'
+        SOURCE_DIR: 'deploy'
+
+    - name: Purge CDN Cache
+      if: false  # Enable if using CDN
+      run: |
+        # Cloudflare purge
+        curl -X POST "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache" \
+          -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+          -H "Content-Type: application/json" \
+          --data '{"purge_everything":true}'
+
+    - name: Notify deployment
+      run: |
+        echo "✅ Schema deployed to schema.chitty.cc"
+        echo "Version: $(cat schema.chitty.cc.json | jq -r .version)"
+        echo "Endpoints:"
+        echo "  - https://schema.chitty.cc/latest/chittyledger-schema.json"
+        echo "  - https://schema.chitty.cc/v1.1/chittyledger-schema.json"

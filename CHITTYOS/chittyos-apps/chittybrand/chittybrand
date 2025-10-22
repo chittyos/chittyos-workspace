@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# ChittyBrand CLI - Brand compliance and asset management
+# Usage: chittybrand <command> [args]
+
+# Load ChittyBrand functions
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/chittybrand-functions.sh"
+
+# Execute the command
+chittybrand "$@"

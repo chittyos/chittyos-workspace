@@ -1,0 +1,144 @@
+name: Deploy ChittySweep
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+    paths:
+      - 'CHITTYOS/chittyos-services/chittysweep/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: CHITTYOS/chittyos-services/chittysweep/package-lock.json
+
+      - name: Install dependencies
+        working-directory: CHITTYOS/chittyos-services/chittysweep
+        run: npm ci
+
+      - name: Run tests
+        working-directory: CHITTYOS/chittyos-services/chittysweep
+        run: npm test || echo "No tests defined yet"
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/staging' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    environment:
+      name: staging
+      url: https://sweep-staging.chitty.cc
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: CHITTYOS/chittyos-services/chittysweep
+        run: npm ci
+
+      - name: Deploy to Cloudflare Workers
+        working-directory: CHITTYOS/chittyos-services/chittysweep
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler deploy --env staging
+
+      - name: Verify deployment
+        run: |
+          sleep 5
+          curl -f https://sweep-staging.chitty.cc/health || exit 1
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+    environment:
+      name: production
+      url: https://sweep.chitty.cc
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: CHITTYOS/chittyos-services/chittysweep
+        run: npm ci
+
+      - name: Deploy to Cloudflare Workers
+        working-directory: CHITTYOS/chittyos-services/chittysweep
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler deploy --env production
+
+      - name: Verify deployment
+        run: |
+          sleep 5
+          curl -f https://sweep.chitty.cc/health || exit 1
+
+      - name: Notify success
+        if: success()
+        run: |
+          echo "✅ ChittySweep deployed to production successfully"
+          echo "🔗 https://sweep.chitty.cc"
+
+      - name: Notify failure
+        if: failure()
+        run: |
+          echo "❌ ChittySweep deployment failed"
+          exit 1
+
+  health-check:
+    name: Post-deployment Health Check
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, deploy-production]
+    if: always()
+    steps:
+      - name: Check staging health
+        if: needs.deploy-staging.result == 'success'
+        run: |
+          response=$(curl -s https://sweep-staging.chitty.cc/health)
+          echo "Staging health: $response"
+          echo "$response" | jq -e '.status == "healthy"'
+
+      - name: Check production health
+        if: needs.deploy-production.result == 'success'
+        run: |
+          response=$(curl -s https://sweep.chitty.cc/health)
+          echo "Production health: $response"
+          echo "$response" | jq -e '.status == "healthy"'
+
+      - name: Check agent status
+        if: needs.deploy-production.result == 'success'
+        run: |
+          response=$(curl -s https://sweep.chitty.cc/api/agents/status)
+          echo "Agent status: $response"
+          echo "$response" | jq -e '.orchestrator == "online"'

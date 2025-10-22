@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChittyOS Unified Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.5); }
+            50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.8); }
+        }
+        .pulse-glow { animation: pulse-glow 2s infinite; }
+
+        .glassmorphic {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .grid-pattern {
+            background-image:
+                linear-gradient(rgba(139, 92, 246, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(139, 92, 246, 0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        .app-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .app-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(139, 92, 246, 0.3);
+        }
+
+        .floating-badge {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 via-slate-900 to-black min-h-screen text-white grid-pattern">
+    <!-- Navigation Bar -->
+    <nav class="glassmorphic sticky top-0 z-50 px-6 py-3 border-b border-purple-500/20">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-6">
+                <div class="flex items-center space-x-3">
+                    <div class="pulse-glow w-12 h-12 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center">
+                        <span class="text-xl font-bold">C</span>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold">ChittyOS</h1>
+                        <p class="text-xs text-gray-400">Unified Command Center</p>
+                    </div>
+                </div>
+
+                <!-- Quick Nav -->
+                <div class="hidden md:flex items-center space-x-1">
+                    <button onclick="scrollToSection('apps')" class="px-3 py-1 hover:bg-white/10 rounded-lg text-sm transition-colors">Apps</button>
+                    <button onclick="scrollToSection('evidence')" class="px-3 py-1 hover:bg-white/10 rounded-lg text-sm transition-colors">Evidence</button>
+                    <button onclick="scrollToSection('ai')" class="px-3 py-1 hover:bg-white/10 rounded-lg text-sm transition-colors">AI Sessions</button>
+                    <button onclick="scrollToSection('blockchain')" class="px-3 py-1 hover:bg-white/10 rounded-lg text-sm transition-colors">Blockchain</button>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-4">
+                <div class="hidden md:flex items-center space-x-2">
+                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span class="text-sm text-gray-400">All Systems Operational</span>
+                </div>
+                <button onclick="toggleSearch()" class="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                    <i data-lucide="search" class="w-5 h-5"></i>
+                </button>
+                <button onclick="toggleNotifications()" class="p-2 hover:bg-white/10 rounded-lg transition-colors relative">
+                    <i data-lucide="bell" class="w-5 h-5"></i>
+                    <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Stats -->
+    <div class="max-w-7xl mx-auto px-6 py-6">
+        <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
+            <div class="glassmorphic rounded-xl p-4 text-center">
+                <div class="text-3xl font-bold text-purple-400">12</div>
+                <div class="text-xs text-gray-400 mt-1">Active Apps</div>
+            </div>
+            <div class="glassmorphic rounded-xl p-4 text-center">
+                <div class="text-3xl font-bold text-blue-400">1,247</div>
+                <div class="text-xs text-gray-400 mt-1">Evidence Files</div>
+            </div>
+            <div class="glassmorphic rounded-xl p-4 text-center">
+                <div class="text-3xl font-bold text-green-400">3</div>
+                <div class="text-xs text-gray-400 mt-1">AI Sessions</div>
+            </div>
+            <div class="glassmorphic rounded-xl p-4 text-center">
+                <div class="text-3xl font-bold text-yellow-400">1,337</div>
+                <div class="text-xs text-gray-400 mt-1">Chain Blocks</div>
+            </div>
+            <div class="glassmorphic rounded-xl p-4 text-center">
+                <div class="text-3xl font-bold text-red-400">98%</div>
+                <div class="text-xs text-gray-400 mt-1">Trust Score</div>
+            </div>
+            <div class="glassmorphic rounded-xl p-4 text-center">
+                <div class="text-3xl font-bold text-pink-400">247</div>
+                <div class="text-xs text-gray-400 mt-1">Legal Docs</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-6 pb-12">
+        <!-- ChittyApps Section -->
+        <section id="apps" class="mb-12">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold flex items-center">
+                    <i data-lucide="grid" class="w-6 h-6 mr-3 text-purple-400"></i>
+                    ChittyApps Ecosystem
+                </h2>
+                <button class="text-sm text-gray-400 hover:text-white transition-colors">View All →</button>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <!-- ChittyChain -->
+                <div onclick="window.open('https://replit.com/@nvshtty/ChittyChain', '_blank')" class="app-card glassmorphic rounded-xl p-6 border border-yellow-500/20">
+                    <div class="floating-badge w-14 h-14 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center mb-4">
+                        <i data-lucide="link-2" class="w-7 h-7"></i>
+                    </div>
+                    <h3 class="font-bold mb-1">ChittyChain</h3>
+                    <p class="text-xs text-gray-400 mb-3">Blockchain Evidence Ledger</p>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded">Live</span>
+                        <span class="text-xs text-gray-500">v2.1.0</span>
+                    </div>
+                </div>
+
+                <!-- ChittyTrust -->
+                <div onclick="window.open('https://replit.com/@nvshtty/ChittyTrust', '_blank')" class="app-card glassmorphic rounded-xl p-6 border border-green-500/20">
+                    <div class="floating-badge w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center mb-4">
+                        <i data-lucide="shield-check" class="w-7 h-7"></i>
+                    </div>
+                    <h3 class="font-bold mb-1">ChittyTrust</h3>
+                    <p class="text-xs text-gray-400 mb-3">Reputation & Trust System</p>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">Active</span>
+                        <span class="text-xs text-gray-500">v1.5.2</span>
+                    </div>
+                </div>
+
+                <!-- Evict Assist -->
+                <div onclick="window.open('https://replit.com/@nvshtty/Evict-Assist', '_blank')" class="app-card glassmorphic rounded-xl p-6 border border-blue-500/20">
+                    <div class="floating-badge w-14 h-14 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center mb-4">
+                        <i data-lucide="home" class="w-7 h-7"></i>
+                    </div>
+                    <h3 class="font-bold mb-1">Evict Assist</h3>
+                    <p class="text-xs text-gray-400 mb-3">Legal Housing Assistant</p>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded">Beta</span>
+                        <span class="text-xs text-gray-500">v0.9.1</span>
+                    </div>
+                </div>
+
+                <!-- ChittyEvidence -->
+                <div onclick="openEvidenceDashboard()" class="app-card glassmorphic rounded-xl p-6 border border-purple-500/20">
+                    <div class="floating-badge w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mb-4">
+                        <i data-lucide="database" class="w-7 h-7"></i>
+                    </div>
+                    <h3 class="font-bold mb-1">ChittyEvidence</h3>
+                    <p class="text-xs text-gray-400 mb-3">Evidence Management</p>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs bg-purple-500/20 text-purple-400 px-2 py-1 rounded">Local</span>
+                        <span class="text-xs text-gray-500">v3.0.0</span>
+                    </div>
+                </div>
+
+                <!-- ChittyResolution -->
+                <div class="app-card glassmorphic rounded-xl p-6 border border-red-500/20">
+                    <div class="floating-badge w-14 h-14 bg-gradient-to-br from-red-500 to-pink-500 rounded-xl flex items-center justify-center mb-4">
+                        <i data-lucide="target" class="w-7 h-7"></i>
+                    </div>
+                    <h3 class="font-bold mb-1">ChittyResolution</h3>
+                    <p class="text-xs text-gray-400 mb-3">Goal & Task Manager</p>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded">Dev</span>
+                        <span class="text-xs text-gray-500">v1.0.0</span>
+                    </div>
+                </div>
+
+                <!-- ChittyChronicle -->
+                <div class="app-card glassmorphic rounded-xl p-6 border border-indigo-500/20">
+                    <div class="floating-badge w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center mb-4">
+                        <i data-lucide="book-open" class="w-7 h-7"></i>
+                    </div>
+                    <h3 class="font-bold mb-1">ChittyChronicle</h3>
+                    <p class="text-xs text-gray-400 mb-3">Timeline & History</p>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs bg-indigo-500/20 text-indigo-400 px-2 py-1 rounded">Alpha</span>
+                        <span class="text-xs text-gray-500">v0.5.0</span>
+                    </div>
+                </div>
+
+                <!-- ChittyFlow -->
+                <div class="app-card glassmorphic rounded-xl p-6 border border-teal-500/20">
+                    <div class="floating-badge w-14 h-14 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-xl flex items-center justify-center mb-4">
+                        <i data-lucide="git-branch" class="w-7 h-7"></i>
+                    </div>
+                    <h3 class="font-bold mb-1">ChittyFlow</h3>
+                    <p class="text-xs text-gray-400 mb-3">Workflow Automation</p>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs bg-teal-500/20 text-teal-400 px-2 py-1 rounded">Soon</span>
+                        <span class="text-xs text-gray-500">v0.1.0</span>
+                    </div>
+                </div>
+
+                <!-- ChittyVault -->
+                <div class="app-card glassmorphic rounded-xl p-6 border border-amber-500/20">
+                    <div class="floating-badge w-14 h-14 bg-gradient-to-br from-amber-500 to-yellow-500 rounded-xl flex items-center justify-center mb-4">
+                        <i data-lucide="lock" class="w-7 h-7"></i>
+                    </div>
+                    <h3 class="font-bold mb-1">ChittyVault</h3>
+                    <p class="text-xs text-gray-400 mb-3">Secure Document Store</p>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded">Soon</span>
+                        <span class="text-xs text-gray-500">v0.1.0</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Live Activity Feed -->
+        <section class="mb-12">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- AI Sessions Monitor -->
+                <div id="ai" class="glassmorphic rounded-xl p-6">
+                    <h3 class="text-lg font-bold mb-4 flex items-center">
+                        <i data-lucide="brain" class="w-5 h-5 mr-2 text-purple-400"></i>
+                        AI Sessions
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                <div>
+                                    <div class="text-sm font-medium">Claude Code</div>
+                                    <div class="text-xs text-gray-400">Building dashboard</div>
+                                </div>
+                            </div>
+                            <span class="text-xs text-green-400">Active</span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg opacity-60">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-2 h-2 bg-gray-500 rounded-full"></div>
+                                <div>
+                                    <div class="text-sm font-medium">ChatGPT</div>
+                                    <div class="text-xs text-gray-400">Last: 2 hours ago</div>
+                                </div>
+                            </div>
+                            <span class="text-xs text-gray-400">Idle</span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg opacity-60">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-2 h-2 bg-gray-500 rounded-full"></div>
+                                <div>
+                                    <div class="text-sm font-medium">Gemini</div>
+                                    <div class="text-xs text-gray-400">Last: Yesterday</div>
+                                </div>
+                            </div>
+                            <span class="text-xs text-gray-400">Offline</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Evidence Status -->
+                <div id="evidence" class="glassmorphic rounded-xl p-6">
+                    <h3 class="text-lg font-bold mb-4 flex items-center">
+                        <i data-lucide="shield" class="w-5 h-5 mr-2 text-green-400"></i>
+                        Evidence Ledger
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center p-3 bg-slate-800/50 rounded-lg">
+                            <span class="text-sm">Total Files</span>
+                            <span class="text-lg font-bold text-blue-400">1,247</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-slate-800/50 rounded-lg">
+                            <span class="text-sm">Legal Holds</span>
+                            <span class="text-lg font-bold text-yellow-400">23</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-slate-800/50 rounded-lg">
+                            <span class="text-sm">Verified</span>
+                            <span class="text-lg font-bold text-green-400">1,205</span>
+                        </div>
+                        <button onclick="openEvidenceDashboard()" class="w-full mt-3 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 text-green-400 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                            Open Dashboard
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Blockchain Status -->
+                <div id="blockchain" class="glassmorphic rounded-xl p-6">
+                    <h3 class="text-lg font-bold mb-4 flex items-center">
+                        <i data-lucide="blocks" class="w-5 h-5 mr-2 text-yellow-400"></i>
+                        Blockchain Network
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center p-3 bg-slate-800/50 rounded-lg">
+                            <span class="text-sm">Latest Block</span>
+                            <span class="font-mono text-xs text-yellow-400">#1337</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-slate-800/50 rounded-lg">
+                            <span class="text-sm">Pending Tx</span>
+                            <span class="text-lg font-bold text-orange-400">42</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-slate-800/50 rounded-lg">
+                            <span class="text-sm">Network</span>
+                            <span class="text-sm text-green-400">Online</span>
+                        </div>
+                        <button onclick="window.open('https://replit.com/@nvshtty/ChittyChain', '_blank')" class="w-full mt-3 bg-yellow-600/20 hover:bg-yellow-600/30 border border-yellow-500/30 text-yellow-400 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                            Open Explorer
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- System Status Footer -->
+        <footer class="glassmorphic rounded-xl p-6">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div>
+                    <div class="text-2xl font-bold text-blue-400">45%</div>
+                    <div class="text-xs text-gray-400">CPU Usage</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-green-400">8.2GB</div>
+                    <div class="text-xs text-gray-400">Memory</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-purple-400">134GB</div>
+                    <div class="text-xs text-gray-400">Storage Used</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-yellow-400">2.4MB/s</div>
+                    <div class="text-xs text-gray-400">Network</div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Smooth scroll to section
+        function scrollToSection(id) {
+            document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Open Evidence Dashboard
+        function openEvidenceDashboard() {
+            window.open('file:///Users/nb/configured/chittyos/configs/system/modules/universal-intake/dashboard.html', '_blank');
+        }
+
+        // Toggle search (placeholder)
+        function toggleSearch() {
+            alert('Search functionality coming soon!');
+        }
+
+        // Toggle notifications (placeholder)
+        function toggleNotifications() {
+            alert('You have 3 new notifications:\n- ChittyChain: New block mined\n- Evidence: 12 new files added\n- AI: Claude session completed');
+        }
+
+        // Auto-refresh stats
+        setInterval(() => {
+            // Simulate live updates
+            const cpuElement = document.querySelector('[data-stat="cpu"]');
+            if (cpuElement) {
+                const cpu = 35 + Math.random() * 30;
+                cpuElement.textContent = `${cpu.toFixed(0)}%`;
+            }
+        }, 5000);
+    </script>
+</body>
+</html>

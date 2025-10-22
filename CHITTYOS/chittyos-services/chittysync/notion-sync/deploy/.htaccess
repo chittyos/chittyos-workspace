@@ -1,0 +1,20 @@
+# Enable CORS for API access
+Header set Access-Control-Allow-Origin "*"
+Header set Access-Control-Allow-Methods "GET, OPTIONS"
+Header set Access-Control-Allow-Headers "Origin, Content-Type, Accept"
+
+# Set correct content types
+<FilesMatch "\.json$">
+    Header set Content-Type "application/json"
+</FilesMatch>
+
+# Cache control
+<FilesMatch "\.(json)$">
+    Header set Cache-Control "public, max-age=300"
+</FilesMatch>
+
+# Compression
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE application/json
+    AddOutputFilterByType DEFLATE text/html
+</IfModule>

@@ -1,0 +1,49 @@
+name = "chittybrand-schema-sync"
+main = "schema-sync-worker.js"
+compatibility_date = "2023-12-01"
+
+# Production configuration
+[env.production]
+name = "chittybrand-schema-sync-prod"
+routes = [
+  "sync.brand.chittyos.com/*"
+]
+
+# Staging configuration
+[env.staging]
+name = "chittybrand-schema-sync-staging"
+routes = [
+  "staging-sync.brand.chittyos.com/*"
+]
+
+# Development configuration
+[env.development]
+name = "chittybrand-schema-sync-dev"
+
+# KV Namespaces for sync state
+[[kv_namespaces]]
+binding = "SYNC_STATE"
+id = "sync_state_namespace_id"
+preview_id = "sync_state_preview_id"
+
+# R2 Buckets for generated assets
+[[r2_buckets]]
+binding = "GENERATED_ASSETS"
+bucket_name = "chitty-brand-generated"
+preview_bucket_name = "chitty-brand-generated-preview"
+
+# Environment variables
+[vars]
+SCHEMA_API_URL = "https://schema.chitty.cc/api"
+WEBHOOK_SECRET = "chitty_schema_webhook_secret_2024"
+SYNC_ENABLED = "true"
+AUTO_GENERATE_ASSETS = "true"
+NOTIFICATION_ENABLED = "true"
+
+# Scheduled events for periodic sync
+[[triggers]]
+crons = ["0 */6 * * *"]  # Every 6 hours
+
+# Worker limits
+[limits]
+cpu_ms = 100

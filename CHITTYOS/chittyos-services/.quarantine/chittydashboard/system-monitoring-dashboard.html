@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChittyOS System Monitoring Dashboard</title>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .monitoring-container {
+            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 50%, #0d1117 100%);
+            min-height: 100vh;
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .metric-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #10b981, #06b6d4, #8b5cf6);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .metric-card:hover::before {
+            opacity: 1;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .status-healthy {
+            background: #10b981;
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+        }
+
+        .status-warning {
+            background: #f59e0b;
+            box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+        }
+
+        .status-critical {
+            background: #ef4444;
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            }
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+            }
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+            }
+        }
+
+        .chart-container {
+            position: relative;
+            height: 200px;
+        }
+
+        .logs-container {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            border-left: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .log-entry:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-left-color: #10b981;
+        }
+
+        .log-info { border-left-color: #06b6d4; }
+        .log-warn { border-left-color: #f59e0b; }
+        .log-error { border-left-color: #ef4444; }
+
+        .service-tile {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .service-tile:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: scale(1.02);
+        }
+
+        .network-graph {
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, transparent 70%);
+        }
+
+        .real-time-badge {
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { box-shadow: 0 0 5px rgba(16, 185, 129, 0.5); }
+            to { box-shadow: 0 0 20px rgba(16, 185, 129, 0.8), 0 0 30px rgba(16, 185, 129, 0.3); }
+        }
+
+        .alert-banner {
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05));
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            animation: slideDown 0.5s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .performance-gauge {
+            background: conic-gradient(from 0deg, #ef4444 0deg, #f59e0b 120deg, #10b981 240deg);
+        }
+
+        .sidebar {
+            width: 280px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-item {
+            transition: all 0.2s ease;
+            border-radius: 8px;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: rgba(16, 185, 129, 0.1);
+            border-left: 3px solid #10b981;
+        }
+    </style>
+</head>
+<body class="monitoring-container">
+    <!-- Alert Banner -->
+    <div id="alert-banner" class="alert-banner p-3 text-center text-white hidden">
+        <div class="flex items-center justify-center space-x-2">
+            <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+            <span id="alert-message">System Alert</span>
+            <button onclick="closeAlert()" class="ml-4">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="sidebar p-6">
+            <div class="mb-8">
+                <h1 class="text-xl font-bold text-white mb-2">ChittyOS Monitor</h1>
+                <div class="flex items-center space-x-2 text-sm text-gray-400">
+                    <div class="status-indicator status-healthy"></div>
+                    <span>System Operational</span>
+                </div>
+            </div>
+
+            <nav class="space-y-2">
+                <a href="#overview" class="nav-item active flex items-center space-x-3 p-3 text-white" onclick="switchTab('overview')">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                    <span>Overview</span>
+                </a>
+                <a href="#services" class="nav-item flex items-center space-x-3 p-3 text-gray-400" onclick="switchTab('services')">
+                    <i data-lucide="server" class="w-5 h-5"></i>
+                    <span>Services</span>
+                </a>
+                <a href="#performance" class="nav-item flex items-center space-x-3 p-3 text-gray-400" onclick="switchTab('performance')">
+                    <i data-lucide="activity" class="w-5 h-5"></i>
+                    <span>Performance</span>
+                </a>
+                <a href="#logs" class="nav-item flex items-center space-x-3 p-3 text-gray-400" onclick="switchTab('logs')">
+                    <i data-lucide="file-text" class="w-5 h-5"></i>
+                    <span>Logs</span>
+                </a>
+                <a href="#security" class="nav-item flex items-center space-x-3 p-3 text-gray-400" onclick="switchTab('security')">
+                    <i data-lucide="shield" class="w-5 h-5"></i>
+                    <span>Security</span>
+                </a>
+                <a href="#network" class="nav-item flex items-center space-x-3 p-3 text-gray-400" onclick="switchTab('network')">
+                    <i data-lucide="globe" class="w-5 h-5"></i>
+                    <span>Network</span>
+                </a>
+            </nav>
+
+            <div class="mt-8 p-4 glass rounded-lg">
+                <h3 class="text-white font-semibold mb-2">Quick Actions</h3>
+                <div class="space-y-2">
+                    <button class="w-full text-left text-sm text-gray-400 hover:text-white" onclick="triggerRefresh()">
+                        <i data-lucide="refresh-cw" class="w-4 h-4 inline mr-2"></i>
+                        Refresh Data
+                    </button>
+                    <button class="w-full text-left text-sm text-gray-400 hover:text-white" onclick="exportMetrics()">
+                        <i data-lucide="download" class="w-4 h-4 inline mr-2"></i>
+                        Export Metrics
+                    </button>
+                    <button class="w-full text-left text-sm text-gray-400 hover:text-white" onclick="showSettings()">
+                        <i data-lucide="settings" class="w-4 h-4 inline mr-2"></i>
+                        Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 overflow-auto">
+            <!-- Header -->
+            <div class="p-6 border-b border-gray-700">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 id="page-title" class="text-2xl font-bold text-white">System Overview</h2>
+                        <p class="text-gray-400">Real-time monitoring and analytics</p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="real-time-badge bg-green-500 text-white px-3 py-1 rounded-full text-sm">
+                            <i data-lucide="radio" class="w-3 h-3 inline mr-1"></i>
+                            Live
+                        </div>
+                        <div class="text-gray-400 text-sm" id="last-updated">
+                            Last updated: <span id="timestamp">--:--:--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overview Tab -->
+            <div id="overview-tab" class="tab-content p-6">
+                <!-- Key Metrics Row -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="metric-card glass rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 bg-blue-500/20 rounded-lg">
+                                <i data-lucide="cpu" class="w-6 h-6 text-blue-400"></i>
+                            </div>
+                            <div class="status-indicator status-healthy"></div>
+                        </div>
+                        <div class="text-2xl font-bold text-white mb-1" id="cpu-usage">23.5%</div>
+                        <div class="text-gray-400 text-sm">CPU Usage</div>
+                        <div class="mt-2 text-xs text-green-400">
+                            <i data-lucide="trending-down" class="w-3 h-3 inline"></i>
+                            -2.3% from last hour
+                        </div>
+                    </div>
+
+                    <div class="metric-card glass rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 bg-green-500/20 rounded-lg">
+                                <i data-lucide="hard-drive" class="w-6 h-6 text-green-400"></i>
+                            </div>
+                            <div class="status-indicator status-healthy"></div>
+                        </div>
+                        <div class="text-2xl font-bold text-white mb-1" id="memory-usage">67.8%</div>
+                        <div class="text-gray-400 text-sm">Memory Usage</div>
+                        <div class="mt-2 text-xs text-green-400">
+                            <i data-lucide="trending-up" class="w-3 h-3 inline"></i>
+                            +1.2% from last hour
+                        </div>
+                    </div>
+
+                    <div class="metric-card glass rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 bg-purple-500/20 rounded-lg">
+                                <i data-lucide="zap" class="w-6 h-6 text-purple-400"></i>
+                            </div>
+                            <div class="status-indicator status-healthy"></div>
+                        </div>
+                        <div class="text-2xl font-bold text-white mb-1" id="api-requests">1,247</div>
+                        <div class="text-gray-400 text-sm">API Requests/hr</div>
+                        <div class="mt-2 text-xs text-green-400">
+                            <i data-lucide="trending-up" class="w-3 h-3 inline"></i>
+                            +15.7% from last hour
+                        </div>
+                    </div>
+
+                    <div class="metric-card glass rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 bg-orange-500/20 rounded-lg">
+                                <i data-lucide="alert-triangle" class="w-6 h-6 text-orange-400"></i>
+                            </div>
+                            <div class="status-indicator status-healthy"></div>
+                        </div>
+                        <div class="text-2xl font-bold text-white mb-1" id="error-rate">0.03%</div>
+                        <div class="text-gray-400 text-sm">Error Rate</div>
+                        <div class="mt-2 text-xs text-green-400">
+                            <i data-lucide="trending-down" class="w-3 h-3 inline"></i>
+                            -0.02% from last hour
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <div class="glass rounded-xl p-6">
+                        <h3 class="text-white font-semibold mb-4">System Performance</h3>
+                        <div class="chart-container">
+                            <canvas id="performance-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="glass rounded-xl p-6">
+                        <h3 class="text-white font-semibold mb-4">API Request Volume</h3>
+                        <div class="chart-container">
+                            <canvas id="requests-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Service Status Grid -->
+                <div class="glass rounded-xl p-6">
+                    <h3 class="text-white font-semibold mb-4">Service Health Overview</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div class="service-tile rounded-lg p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-white font-medium">Workers AI</span>
+                                <div class="status-indicator status-healthy"></div>
+                            </div>
+                            <div class="text-sm text-gray-400">Response: 234ms</div>
+                            <div class="text-sm text-gray-400">Uptime: 99.9%</div>
+                        </div>
+
+                        <div class="service-tile rounded-lg p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-white font-medium">Session Sync</span>
+                                <div class="status-indicator status-healthy"></div>
+                            </div>
+                            <div class="text-sm text-gray-400">Active: 84 sessions</div>
+                            <div class="text-sm text-gray-400">Sync Rate: 100%</div>
+                        </div>
+
+                        <div class="service-tile rounded-lg p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-white font-medium">Data Service</span>
+                                <div class="status-indicator status-healthy"></div>
+                            </div>
+                            <div class="text-sm text-gray-400">Files: 2,147</div>
+                            <div class="text-sm text-gray-400">Indexed: 100%</div>
+                        </div>
+
+                        <div class="service-tile rounded-lg p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-white font-medium">OAuth Provider</span>
+                                <div class="status-indicator status-healthy"></div>
+                            </div>
+                            <div class="text-sm text-gray-400">Tokens: 156 active</div>
+                            <div class="text-sm text-gray-400">Success: 99.2%</div>
+                        </div>
+
+                        <div class="service-tile rounded-lg p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-white font-medium">Notion Sync</span>
+                                <div class="status-indicator status-warning"></div>
+                            </div>
+                            <div class="text-sm text-gray-400">Queue: 12 pending</div>
+                            <div class="text-sm text-gray-400">Last sync: 2m ago</div>
+                        </div>
+
+                        <div class="service-tile rounded-lg p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-white font-medium">MCP Registry</span>
+                                <div class="status-indicator status-healthy"></div>
+                            </div>
+                            <div class="text-sm text-gray-400">Servers: 8 connected</div>
+                            <div class="text-sm text-gray-400">Healthy: 8/8</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Services Tab -->
+            <div id="services-tab" class="tab-content hidden p-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2">
+                        <div class="glass rounded-xl p-6">
+                            <h3 class="text-white font-semibold mb-4">Service Registry</h3>
+                            <div class="space-y-4" id="service-list">
+                                <!-- Services will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div class="glass rounded-xl p-6">
+                            <h3 class="text-white font-semibold mb-4">Service Categories</h3>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-400">AI Services</span>
+                                    <span class="text-white font-medium">5</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-400">Tools</span>
+                                    <span class="text-white font-medium">12</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-400">External APIs</span>
+                                    <span class="text-white font-medium">8</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-400">ChittyOS Modules</span>
+                                    <span class="text-white font-medium">22</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="glass rounded-xl p-6">
+                            <h3 class="text-white font-semibold mb-4">MCP Servers</h3>
+                            <div class="space-y-3" id="mcp-servers-list">
+                                <!-- MCP servers will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance Tab -->
+            <div id="performance-tab" class="tab-content hidden p-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <div class="glass rounded-xl p-6">
+                        <h3 class="text-white font-semibold mb-4">Response Times</h3>
+                        <div class="chart-container">
+                            <canvas id="response-times-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="glass rounded-xl p-6">
+                        <h3 class="text-white font-semibold mb-4">Throughput</h3>
+                        <div class="chart-container">
+                            <canvas id="throughput-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass rounded-xl p-6">
+                    <h3 class="text-white font-semibold mb-4">Performance Metrics</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="text-center">
+                            <div class="performance-gauge w-24 h-24 rounded-full mx-auto mb-4 flex items-center justify-center">
+                                <div class="w-16 h-16 bg-gray-900 rounded-full flex items-center justify-center">
+                                    <span class="text-white font-bold">94%</span>
+                                </div>
+                            </div>
+                            <div class="text-white font-medium">Overall Performance</div>
+                            <div class="text-gray-400 text-sm">Excellent</div>
+                        </div>
+
+                        <div class="text-center">
+                            <div class="performance-gauge w-24 h-24 rounded-full mx-auto mb-4 flex items-center justify-center">
+                                <div class="w-16 h-16 bg-gray-900 rounded-full flex items-center justify-center">
+                                    <span class="text-white font-bold">87%</span>
+                                </div>
+                            </div>
+                            <div class="text-white font-medium">Reliability</div>
+                            <div class="text-gray-400 text-sm">Good</div>
+                        </div>
+
+                        <div class="text-center">
+                            <div class="performance-gauge w-24 h-24 rounded-full mx-auto mb-4 flex items-center justify-center">
+                                <div class="w-16 h-16 bg-gray-900 rounded-full flex items-center justify-center">
+                                    <span class="text-white font-bold">92%</span>
+                                </div>
+                            </div>
+                            <div class="text-white font-medium">Efficiency</div>
+                            <div class="text-gray-400 text-sm">Excellent</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs Tab -->
+            <div id="logs-tab" class="tab-content hidden p-6">
+                <div class="glass rounded-xl p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-white font-semibold">System Logs</h3>
+                        <div class="flex items-center space-x-4">
+                            <select class="bg-gray-800 text-white px-3 py-1 rounded" id="log-filter">
+                                <option value="all">All Levels</option>
+                                <option value="info">Info</option>
+                                <option value="warn">Warning</option>
+                                <option value="error">Error</option>
+                            </select>
+                            <button class="text-gray-400 hover:text-white" onclick="clearLogs()">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="logs-container" id="logs-container">
+                        <!-- Logs will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Tab -->
+            <div id="security-tab" class="tab-content hidden p-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="glass rounded-xl p-6">
+                        <h3 class="text-white font-semibold mb-4">Security Events</h3>
+                        <div class="space-y-4" id="security-events">
+                            <!-- Security events will be populated here -->
+                        </div>
+                    </div>
+
+                    <div class="glass rounded-xl p-6">
+                        <h3 class="text-white font-semibold mb-4">OAuth Metrics</h3>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-400">Active Tokens</span>
+                                <span class="text-white font-medium">156</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-400">Registered Clients</span>
+                                <span class="text-white font-medium">23</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-400">Success Rate</span>
+                                <span class="text-green-400 font-medium">99.2%</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-400">Failed Attempts (24h)</span>
+                                <span class="text-red-400 font-medium">3</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Network Tab -->
+            <div id="network-tab" class="tab-content hidden p-6">
+                <div class="glass rounded-xl p-6">
+                    <h3 class="text-white font-semibold mb-4">Network Topology</h3>
+                    <div class="network-graph h-96 rounded-lg flex items-center justify-center">
+                        <div class="text-gray-400">Network visualization would be implemented here</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let currentTab = 'overview';
+        let charts = {};
+        let updateInterval;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            lucide.createIcons();
+            initializeCharts();
+            populateData();
+            startRealTimeUpdates();
+        });
+
+        // Tab switching
+        function switchTab(tabName) {
+            // Update navigation
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+                item.classList.add('text-gray-400');
+                item.classList.remove('text-white');
+            });
+
+            const activeNav = document.querySelector(`[onclick="switchTab('${tabName}')"]`);
+            if (activeNav) {
+                activeNav.classList.add('active', 'text-white');
+                activeNav.classList.remove('text-gray-400');
+            }
+
+            // Update content
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.add('hidden');
+            });
+
+            const activeTab = document.getElementById(`${tabName}-tab`);
+            if (activeTab) {
+                activeTab.classList.remove('hidden');
+            }
+
+            // Update page title
+            const titles = {
+                overview: 'System Overview',
+                services: 'Service Management',
+                performance: 'Performance Analytics',
+                logs: 'System Logs',
+                security: 'Security Dashboard',
+                network: 'Network Monitoring'
+            };
+
+            document.getElementById('page-title').textContent = titles[tabName] || 'ChittyOS Monitor';
+            currentTab = tabName;
+
+            // Load tab-specific data
+            loadTabData(tabName);
+        }
+
+        // Initialize charts
+        function initializeCharts() {
+            // Performance chart
+            const performanceCtx = document.getElementById('performance-chart');
+            if (performanceCtx) {
+                charts.performance = new Chart(performanceCtx, {
+                    type: 'line',
+                    data: {
+                        labels: generateTimeLabels(24),
+                        datasets: [
+                            {
+                                label: 'CPU %',
+                                data: generateRandomData(24, 20, 30),
+                                borderColor: '#06b6d4',
+                                backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                                tension: 0.4
+                            },
+                            {
+                                label: 'Memory %',
+                                data: generateRandomData(24, 60, 75),
+                                borderColor: '#10b981',
+                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                tension: 0.4
+                            }
+                        ]
+                    },
+                    options: getChartOptions()
+                });
+            }
+
+            // Requests chart
+            const requestsCtx = document.getElementById('requests-chart');
+            if (requestsCtx) {
+                charts.requests = new Chart(requestsCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: generateTimeLabels(12),
+                        datasets: [{
+                            label: 'API Requests',
+                            data: generateRandomData(12, 800, 1500),
+                            backgroundColor: 'rgba(139, 92, 246, 0.8)',
+                            borderColor: '#8b5cf6',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: getChartOptions()
+                });
+            }
+
+            // Response times chart
+            const responseCtx = document.getElementById('response-times-chart');
+            if (responseCtx) {
+                charts.responseTimes = new Chart(responseCtx, {
+                    type: 'line',
+                    data: {
+                        labels: generateTimeLabels(24),
+                        datasets: [{
+                            label: 'Response Time (ms)',
+                            data: generateRandomData(24, 150, 300),
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            tension: 0.4
+                        }]
+                    },
+                    options: getChartOptions()
+                });
+            }
+
+            // Throughput chart
+            const throughputCtx = document.getElementById('throughput-chart');
+            if (throughputCtx) {
+                charts.throughput = new Chart(throughputCtx, {
+                    type: 'area',
+                    data: {
+                        labels: generateTimeLabels(24),
+                        datasets: [{
+                            label: 'Requests/min',
+                            data: generateRandomData(24, 50, 120),
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: getChartOptions()
+                });
+            }
+        }
+
+        // Chart options
+        function getChartOptions() {
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#9ca3af'
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            color: '#9ca3af'
+                        },
+                        grid: {
+                            color: 'rgba(156, 163, 175, 0.1)'
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            color: '#9ca3af'
+                        },
+                        grid: {
+                            color: 'rgba(156, 163, 175, 0.1)'
+                        }
+                    }
+                }
+            };
+        }
+
+        // Utility functions
+        function generateTimeLabels(hours) {
+            const labels = [];
+            const now = new Date();
+            for (let i = hours - 1; i >= 0; i--) {
+                const time = new Date(now.getTime() - i * 60 * 60 * 1000);
+                labels.push(time.getHours().toString().padStart(2, '0') + ':00');
+            }
+            return labels;
+        }
+
+        function generateRandomData(length, min, max) {
+            return Array.from({ length }, () => Math.floor(Math.random() * (max - min + 1)) + min);
+        }
+
+        // Data population
+        function populateData() {
+            populateServiceList();
+            populateMCPServers();
+            populateLogs();
+            populateSecurityEvents();
+            updateTimestamp();
+        }
+
+        function populateServiceList() {
+            const services = [
+                { name: 'Workers AI AutoRAG', status: 'healthy', category: 'AI_SERVICES', responseTime: '234ms', uptime: '99.9%' },
+                { name: 'Session Sync Service', status: 'healthy', category: 'CHITTYOS_MODULES', responseTime: '45ms', uptime: '99.8%' },
+                { name: 'Data Service API', status: 'healthy', category: 'CHITTYOS_MODULES', responseTime: '67ms', uptime: '99.9%' },
+                { name: 'OAuth Provider', status: 'healthy', category: 'CHITTYOS_MODULES', responseTime: '89ms', uptime: '99.2%' },
+                { name: 'Notion Sync', status: 'warning', category: 'EXTERNAL_APIS', responseTime: '1.2s', uptime: '98.5%' },
+                { name: 'ChittyChain API', status: 'healthy', category: 'EXTERNAL_APIS', responseTime: '345ms', uptime: '99.1%' }
+            ];
+
+            const serviceList = document.getElementById('service-list');
+            if (serviceList) {
+                serviceList.innerHTML = services.map(service => `
+                    <div class="service-tile rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center space-x-3">
+                                <div class="status-indicator status-${service.status}"></div>
+                                <div>
+                                    <div class="text-white font-medium">${service.name}</div>
+                                    <div class="text-sm text-gray-400">${service.category}</div>
+                                </div>
+                            </div>
+                            <div class="text-right text-sm">
+                                <div class="text-gray-400">Response: ${service.responseTime}</div>
+                                <div class="text-gray-400">Uptime: ${service.uptime}</div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function populateMCPServers() {
+            const mcpServers = [
+                { name: 'Filesystem MCP', status: 'healthy', tools: 3 },
+                { name: 'Database MCP', status: 'healthy', tools: 5 },
+                { name: 'Search MCP', status: 'healthy', tools: 2 },
+                { name: 'Analytics MCP', status: 'warning', tools: 4 }
+            ];
+
+            const mcpList = document.getElementById('mcp-servers-list');
+            if (mcpList) {
+                mcpList.innerHTML = mcpServers.map(server => `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <div class="status-indicator status-${server.status}"></div>
+                            <span class="text-white text-sm">${server.name}</span>
+                        </div>
+                        <span class="text-gray-400 text-xs">${server.tools} tools</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function populateLogs() {
+            const logs = [
+                { level: 'info', timestamp: '10:45:23', message: 'OAuth token validated successfully', service: 'OAuth Provider' },
+                { level: 'info', timestamp: '10:45:20', message: 'AutoRAG query processed in 2.3s', service: 'Workers AI' },
+                { level: 'warn', timestamp: '10:45:15', message: 'Notion sync queue has 12 pending items', service: 'Notion Sync' },
+                { level: 'info', timestamp: '10:45:10', message: 'Session sync completed for user session-123', service: 'Session Sync' },
+                { level: 'info', timestamp: '10:45:05', message: 'MCP server filesystem.chitty.cc connected', service: 'MCP Registry' },
+                { level: 'error', timestamp: '10:44:55', message: 'Rate limit exceeded for client mcp_test_456', service: 'API Gateway' },
+                { level: 'info', timestamp: '10:44:50', message: 'Evidence file indexed: system.log', service: 'Data Service' }
+            ];
+
+            const logsContainer = document.getElementById('logs-container');
+            if (logsContainer) {
+                logsContainer.innerHTML = logs.map(log => `
+                    <div class="log-entry log-${log.level} p-3 text-sm">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-start space-x-3">
+                                <span class="text-gray-400 font-mono">${log.timestamp}</span>
+                                <span class="text-white">${log.message}</span>
+                            </div>
+                            <span class="text-gray-500 text-xs">${log.service}</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function populateSecurityEvents() {
+            const events = [
+                { type: 'OAuth Success', user: 'mcp_filesystem_123', time: '2 minutes ago', risk: 'low' },
+                { type: 'Token Refresh', user: 'dashboard_client', time: '5 minutes ago', risk: 'low' },
+                { type: 'Rate Limit Hit', user: 'mcp_test_456', time: '8 minutes ago', risk: 'medium' },
+                { type: 'New Client Registered', user: 'analytics_mcp', time: '12 minutes ago', risk: 'low' }
+            ];
+
+            const securityContainer = document.getElementById('security-events');
+            if (securityContainer) {
+                securityContainer.innerHTML = events.map(event => `
+                    <div class="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                        <div>
+                            <div class="text-white font-medium">${event.type}</div>
+                            <div class="text-sm text-gray-400">${event.user}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm text-gray-400">${event.time}</div>
+                            <div class="text-xs px-2 py-1 rounded ${event.risk === 'low' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}">${event.risk} risk</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Real-time updates
+        function startRealTimeUpdates() {
+            updateInterval = setInterval(() => {
+                updateMetrics();
+                updateTimestamp();
+            }, 30000); // Update every 30 seconds
+        }
+
+        function updateMetrics() {
+            // Simulate metric updates
+            document.getElementById('cpu-usage').textContent = (Math.random() * 30 + 15).toFixed(1) + '%';
+            document.getElementById('memory-usage').textContent = (Math.random() * 20 + 60).toFixed(1) + '%';
+            document.getElementById('api-requests').textContent = Math.floor(Math.random() * 500 + 1000).toLocaleString();
+            document.getElementById('error-rate').textContent = (Math.random() * 0.1).toFixed(3) + '%';
+
+            // Update charts
+            Object.values(charts).forEach(chart => {
+                if (chart && chart.data && chart.data.datasets) {
+                    chart.data.datasets.forEach(dataset => {
+                        dataset.data.shift();
+                        dataset.data.push(Math.floor(Math.random() * 100));
+                    });
+                    chart.update('none');
+                }
+            });
+        }
+
+        function updateTimestamp() {
+            const now = new Date();
+            document.getElementById('timestamp').textContent = now.toLocaleTimeString();
+        }
+
+        // Tab-specific data loading
+        function loadTabData(tabName) {
+            switch (tabName) {
+                case 'services':
+                    populateServiceList();
+                    populateMCPServers();
+                    break;
+                case 'logs':
+                    populateLogs();
+                    break;
+                case 'security':
+                    populateSecurityEvents();
+                    break;
+            }
+        }
+
+        // Utility functions
+        function triggerRefresh() {
+            populateData();
+            updateMetrics();
+            showAlert('Data refreshed successfully', 'success');
+        }
+
+        function exportMetrics() {
+            const data = {
+                timestamp: new Date().toISOString(),
+                metrics: {
+                    cpu: document.getElementById('cpu-usage').textContent,
+                    memory: document.getElementById('memory-usage').textContent,
+                    requests: document.getElementById('api-requests').textContent,
+                    errorRate: document.getElementById('error-rate').textContent
+                }
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `chittyos-metrics-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            showAlert('Metrics exported successfully', 'success');
+        }
+
+        function showSettings() {
+            showAlert('Settings panel would open here', 'info');
+        }
+
+        function showAlert(message, type = 'info') {
+            const banner = document.getElementById('alert-banner');
+            const messageEl = document.getElementById('alert-message');
+
+            messageEl.textContent = message;
+            banner.className = `alert-banner p-3 text-center text-white`;
+
+            if (type === 'success') {
+                banner.style.background = 'linear-gradient(90deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05))';
+                banner.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+            }
+
+            banner.classList.remove('hidden');
+
+            setTimeout(() => {
+                banner.classList.add('hidden');
+            }, 3000);
+        }
+
+        function closeAlert() {
+            document.getElementById('alert-banner').classList.add('hidden');
+        }
+
+        function clearLogs() {
+            document.getElementById('logs-container').innerHTML = '<div class="text-center text-gray-400 py-8">Logs cleared</div>';
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,164 @@
+{
+  "summary": {
+    "totalCalls": 4443,
+    "answeredCalls": 254,
+    "voicemails": 0,
+    "totalMinutes": 1421,
+    "averageCallLength": 5.59,
+    "businessHoursPercentage": 79.1,
+    "currentMonthlyCost": 90,
+    "estimatedTwilioCost": 8,
+    "monthlySavings": 82,
+    "annualSavings": 990
+  },
+  "byNumber": {
+    "": {
+      "calls": 34,
+      "minutes": 0
+    },
+    "Main Line (Apps/Etc)": {
+      "calls": 4292,
+      "minutes": 1204.2333333333315
+    },
+    "West Addison": {
+      "calls": 116,
+      "minutes": 216.63333333333333
+    },
+    "undefined": {
+      "calls": 1,
+      "minutes": 0
+    }
+  },
+  "monthlyActivity": {
+    "Invalid Date": {
+      "calls": 35,
+      "minutes": 0
+    },
+    "Sep 2024": {
+      "calls": 40,
+      "minutes": 87.2
+    },
+    "Aug 2024": {
+      "calls": 228,
+      "minutes": 146.13333333333338
+    },
+    "Jul 2024": {
+      "calls": 454,
+      "minutes": 386.4666666666667
+    },
+    "Jun 2024": {
+      "calls": 558,
+      "minutes": 47.233333333333334
+    },
+    "May 2024": {
+      "calls": 290,
+      "minutes": 75.43333333333332
+    },
+    "Apr 2024": {
+      "calls": 490,
+      "minutes": 134.50000000000003
+    },
+    "Mar 2024": {
+      "calls": 328,
+      "minutes": 113.93333333333331
+    },
+    "Feb 2024": {
+      "calls": 132,
+      "minutes": 1.0666666666666667
+    },
+    "Jan 2024": {
+      "calls": 164,
+      "minutes": 29.96666666666666
+    },
+    "Dec 2023": {
+      "calls": 110,
+      "minutes": 2.8
+    },
+    "Nov 2023": {
+      "calls": 90,
+      "minutes": 15.56666666666667
+    },
+    "Oct 2023": {
+      "calls": 10,
+      "minutes": 67.06666666666668
+    },
+    "Sep 2023": {
+      "calls": 72,
+      "minutes": 2.3666666666666667
+    },
+    "Aug 2023": {
+      "calls": 120,
+      "minutes": 119.69999999999999
+    },
+    "Jul 2023": {
+      "calls": 464,
+      "minutes": 40.56666666666667
+    },
+    "Jun 2023": {
+      "calls": 28,
+      "minutes": 0.5333333333333333
+    },
+    "May 2023": {
+      "calls": 148,
+      "minutes": 5.800000000000001
+    },
+    "Apr 2023": {
+      "calls": 44,
+      "minutes": 0.06666666666666667
+    },
+    "Mar 2023": {
+      "calls": 252,
+      "minutes": 59.3
+    },
+    "Jan 2023": {
+      "calls": 220,
+      "minutes": 29.100000000000005
+    },
+    "Dec 2022": {
+      "calls": 22,
+      "minutes": 9.366666666666667
+    },
+    "Nov 2022": {
+      "calls": 2,
+      "minutes": 7.033333333333333
+    },
+    "Oct 2022": {
+      "calls": 8,
+      "minutes": 18.1
+    },
+    "Sep 2022": {
+      "calls": 2,
+      "minutes": 0.6333333333333333
+    },
+    "Aug 2022": {
+      "calls": 38,
+      "minutes": 10.933333333333334
+    },
+    "Jul 2022": {
+      "calls": 4,
+      "minutes": 0.06666666666666667
+    },
+    "Feb 2023": {
+      "calls": 90,
+      "minutes": 9.933333333333334
+    }
+  },
+  "topCallers": {
+    "18722742421": {
+      "calls": 4292,
+      "minutes": 1204.2333333333315
+    },
+    "18722784141": {
+      "calls": 116,
+      "minutes": 216.63333333333333
+    },
+    "": {
+      "calls": 34,
+      "minutes": 0
+    },
+    "undefined": {
+      "calls": 1,
+      "minutes": 0
+    }
+  }
+}

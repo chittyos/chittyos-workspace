@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChittyOS Command Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.5; }
+            100% { transform: scale(0.95); opacity: 1; }
+        }
+        .live-pulse { animation: pulse-ring 2s infinite; }
+        .glassmorphic {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .gradient-border {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 1px;
+            border-radius: 12px;
+        }
+        .scroll-area {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(139, 92, 246, 0.5) rgba(0, 0, 0, 0.3);
+        }
+        .scroll-area::-webkit-scrollbar {
+            width: 6px;
+        }
+        .scroll-area::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 3px;
+        }
+        .scroll-area::-webkit-scrollbar-thumb {
+            background: rgba(139, 92, 246, 0.5);
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 min-h-screen text-white">
+    <!-- Header -->
+    <header class="glassmorphic sticky top-0 z-50 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <div class="gradient-border p-2 rounded-xl">
+                    <div class="bg-slate-900 rounded-xl px-3 py-2 flex items-center space-x-3">
+                        <div class="live-pulse w-3 h-3 bg-green-500 rounded-full"></div>
+                        <h1 class="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                            ChittyOS Command Center
+                        </h1>
+                    </div>
+                </div>
+                <span class="text-sm text-gray-400">Universal System Dashboard</span>
+            </div>
+
+            <div class="flex items-center space-x-4">
+                <!-- Quick Actions -->
+                <div class="flex items-center space-x-2">
+                    <button onclick="launchChittyChain()" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2">
+                        <i data-lucide="link" class="w-4 h-4"></i>
+                        <span>ChittyChain</span>
+                    </button>
+                    <button onclick="openNotionSync()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2">
+                        <i data-lucide="database" class="w-4 h-4"></i>
+                        <span>Notion Sync</span>
+                    </button>
+                    <button onclick="toggleCommandMode()" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2">
+                        <i data-lucide="terminal" class="w-4 h-4"></i>
+                        <span>Command</span>
+                    </button>
+                </div>
+                <div id="system-time" class="text-sm text-gray-400"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="max-w-7xl mx-auto p-6">
+        <!-- Key Metrics Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+            <div class="glassmorphic rounded-xl p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-gray-400 text-sm">AI Sessions</span>
+                    <i data-lucide="brain" class="w-4 h-4 text-purple-400"></i>
+                </div>
+                <div class="text-2xl font-bold" id="ai-sessions">3</div>
+                <div class="text-xs text-green-400 mt-1">Claude, GPT, Gemini</div>
+            </div>
+
+            <div class="glassmorphic rounded-xl p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-gray-400 text-sm">Evidence Files</span>
+                    <i data-lucide="shield" class="w-4 h-4 text-blue-400"></i>
+                </div>
+                <div class="text-2xl font-bold" id="evidence-count">1,247</div>
+                <div class="text-xs text-blue-400 mt-1">ChittyIDs Assigned</div>
+            </div>
+
+            <div class="glassmorphic rounded-xl p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-gray-400 text-sm">Active Projects</span>
+                    <i data-lucide="folder-open" class="w-4 h-4 text-green-400"></i>
+                </div>
+                <div class="text-2xl font-bold" id="active-projects">12</div>
+                <div class="text-xs text-green-400 mt-1">4 Hot, 8 Active</div>
+            </div>
+
+            <div class="glassmorphic rounded-xl p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-gray-400 text-sm">Blockchain</span>
+                    <i data-lucide="blocks" class="w-4 h-4 text-yellow-400"></i>
+                </div>
+                <div class="text-2xl font-bold" id="blockchain-status">42</div>
+                <div class="text-xs text-yellow-400 mt-1">Pending Verification</div>
+            </div>
+
+            <div class="glassmorphic rounded-xl p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-gray-400 text-sm">System Health</span>
+                    <i data-lucide="activity" class="w-4 h-4 text-red-400"></i>
+                </div>
+                <div class="text-2xl font-bold" id="system-health">98%</div>
+                <div class="text-xs text-red-400 mt-1">All Systems Go</div>
+            </div>
+        </div>
+
+        <!-- Main Dashboard Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Column: AI & Projects -->
+            <div class="space-y-6">
+                <!-- AI Platform Status -->
+                <div class="glassmorphic rounded-xl p-5">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center">
+                        <i data-lucide="cpu" class="w-5 h-5 mr-2 text-purple-400"></i>
+                        AI Platform Status
+                    </h2>
+                    <div class="space-y-3" id="ai-platforms">
+                        <div class="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                                    <span class="text-sm font-bold">CC</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium">Claude Code</div>
+                                    <div class="text-xs text-gray-400">Active Session</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                                <span class="text-xs text-green-400">Active</span>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+                                    <span class="text-sm font-bold">GPT</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium">ChatGPT</div>
+                                    <div class="text-xs text-gray-400">Desktop App</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <div class="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                                <span class="text-xs text-yellow-400">Idle</span>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg opacity-60">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                                    <span class="text-sm font-bold">G</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium">Gemini</div>
+                                    <div class="text-xs text-gray-400">Web Interface</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <div class="w-2 h-2 bg-gray-500 rounded-full"></div>
+                                <span class="text-xs text-gray-400">Offline</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Projects -->
+                <div class="glassmorphic rounded-xl p-5">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center">
+                        <i data-lucide="briefcase" class="w-5 h-5 mr-2 text-blue-400"></i>
+                        Active Projects
+                    </h2>
+                    <div class="space-y-3 scroll-area max-h-64 overflow-y-auto" id="projects-list">
+                        <!-- Projects will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Column: Evidence & Activity -->
+            <div class="space-y-6">
+                <!-- Evidence Ledger -->
+                <div class="glassmorphic rounded-xl p-5">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center">
+                        <i data-lucide="shield-check" class="w-5 h-5 mr-2 text-green-400"></i>
+                        Evidence Ledger
+                    </h2>
+                    <div class="space-y-3">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="bg-slate-800/50 rounded-lg p-3">
+                                <div class="text-sm text-gray-400">Legal Holds</div>
+                                <div class="text-xl font-bold text-yellow-400">23</div>
+                            </div>
+                            <div class="bg-slate-800/50 rounded-lg p-3">
+                                <div class="text-sm text-gray-400">Verified</div>
+                                <div class="text-xl font-bold text-green-400">1,205</div>
+                            </div>
+                        </div>
+                        <div class="bg-slate-800/50 rounded-lg p-3">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-sm text-gray-400">Storage Usage</span>
+                                <span class="text-sm font-medium">67%</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2">
+                                <div class="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full" style="width: 67%"></div>
+                            </div>
+                            <div class="text-xs text-gray-400 mt-1">134GB of 200GB</div>
+                        </div>
+                    </div>
+                    <button onclick="openEvidenceDashboard()" class="w-full mt-4 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 text-green-400 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                        Open Evidence Dashboard
+                    </button>
+                </div>
+
+                <!-- Activity Stream -->
+                <div class="glassmorphic rounded-xl p-5">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center">
+                        <i data-lucide="activity" class="w-5 h-5 mr-2 text-yellow-400"></i>
+                        Activity Stream
+                    </h2>
+                    <div class="space-y-2 scroll-area max-h-64 overflow-y-auto" id="activity-stream">
+                        <!-- Activity items will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: System & ChittyChain -->
+            <div class="space-y-6">
+                <!-- ChittyChain Status -->
+                <div class="glassmorphic rounded-xl p-5">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center">
+                        <i data-lucide="link-2" class="w-5 h-5 mr-2 text-yellow-400"></i>
+                        ChittyChain Network
+                    </h2>
+                    <div class="space-y-3">
+                        <div class="bg-slate-800/50 rounded-lg p-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-400">Network Status</span>
+                                <span class="text-sm font-medium text-green-400">Online</span>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="bg-slate-800/50 rounded-lg p-3">
+                                <div class="text-sm text-gray-400">Blocks</div>
+                                <div class="text-xl font-bold">1,337</div>
+                            </div>
+                            <div class="bg-slate-800/50 rounded-lg p-3">
+                                <div class="text-sm text-gray-400">Tx/Hour</div>
+                                <div class="text-xl font-bold">247</div>
+                            </div>
+                        </div>
+                        <div class="bg-slate-800/50 rounded-lg p-3">
+                            <div class="text-sm text-gray-400 mb-1">Latest Block</div>
+                            <div class="font-mono text-xs text-purple-400">#0x7a9f2c8e...</div>
+                            <div class="text-xs text-gray-500 mt-1">2 mins ago</div>
+                        </div>
+                    </div>
+                    <button onclick="launchChittyChain()" class="w-full mt-4 bg-yellow-600/20 hover:bg-yellow-600/30 border border-yellow-500/30 text-yellow-400 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                        Open ChittyChain Explorer
+                    </button>
+                </div>
+
+                <!-- System Resources -->
+                <div class="glassmorphic rounded-xl p-5">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center">
+                        <i data-lucide="hard-drive" class="w-5 h-5 mr-2 text-red-400"></i>
+                        System Resources
+                    </h2>
+                    <div class="space-y-3">
+                        <div class="bg-slate-800/50 rounded-lg p-3">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-sm text-gray-400">CPU Usage</span>
+                                <span class="text-sm font-medium" id="cpu-usage">45%</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2">
+                                <div class="bg-blue-500 h-2 rounded-full transition-all duration-500" id="cpu-bar" style="width: 45%"></div>
+                            </div>
+                        </div>
+                        <div class="bg-slate-800/50 rounded-lg p-3">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-sm text-gray-400">Memory</span>
+                                <span class="text-sm font-medium" id="memory-usage">8.2GB</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2">
+                                <div class="bg-green-500 h-2 rounded-full transition-all duration-500" id="memory-bar" style="width: 52%"></div>
+                            </div>
+                        </div>
+                        <div class="bg-slate-800/50 rounded-lg p-3">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-sm text-gray-400">Network</span>
+                                <span class="text-sm font-medium" id="network-usage">2.4MB/s</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2">
+                                <div class="bg-purple-500 h-2 rounded-full transition-all duration-500" id="network-bar" style="width: 24%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Command Terminal (Hidden by default) -->
+        <div id="command-terminal" class="hidden glassmorphic rounded-xl p-5 mt-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold flex items-center">
+                    <i data-lucide="terminal" class="w-5 h-5 mr-2 text-green-400"></i>
+                    ChittyOS Terminal
+                </h2>
+                <button onclick="toggleCommandMode()" class="text-gray-400 hover:text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="bg-black/50 rounded-lg p-4 font-mono text-sm">
+                <div id="terminal-output" class="text-green-400 mb-2 max-h-64 overflow-y-auto scroll-area">
+                    ChittyOS v3.1.4 - Ready<br>
+                    Type 'help' for available commands<br>
+                </div>
+                <div class="flex items-center">
+                    <span class="text-green-400 mr-2">$</span>
+                    <input type="text" id="terminal-input" class="bg-transparent outline-none flex-1 text-green-400" placeholder="Enter command..." onkeypress="handleCommand(event)">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Global state
+        let terminalHistory = [];
+        let historyIndex = -1;
+        const API_BASE = 'http://localhost:3001';
+
+        // Update system time
+        function updateSystemTime() {
+            const now = new Date();
+            document.getElementById('system-time').textContent = now.toLocaleString();
+        }
+        setInterval(updateSystemTime, 1000);
+        updateSystemTime();
+
+        // Fetch real ChittyOS data
+        async function fetchChittyOSData() {
+            try {
+                // Fetch system status
+                const statusRes = await fetch(`${API_BASE}/api/status`);
+                const status = await statusRes.json();
+
+                // Update evidence count
+                if (status.evidence) {
+                    document.getElementById('evidence-count').textContent = status.evidence.count || '0';
+
+                    // Update system health based on services
+                    const healthPercent = status.services ?
+                        (Object.values(status.services).filter(v => v).length / Object.keys(status.services).length * 100).toFixed(0) : 98;
+                    document.getElementById('system-health').textContent = healthPercent + '%';
+                }
+
+                // Fetch metrics
+                const metricsRes = await fetch(`${API_BASE}/api/metrics`);
+                const metrics = await metricsRes.json();
+
+                // Update storage in evidence ledger
+                if (metrics.storage) {
+                    const storageBar = document.querySelector('.bg-gradient-to-r.from-purple-500.to-pink-500');
+                    if (storageBar) {
+                        storageBar.style.width = metrics.storage.percentage + '%';
+                        const storageText = storageBar.parentElement.nextElementSibling;
+                        if (storageText) {
+                            storageText.textContent = `${metrics.storage.used} of ${metrics.storage.available} available`;
+                        }
+                    }
+                }
+
+                // Fetch AI sessions
+                const aiRes = await fetch(`${API_BASE}/api/ai-sessions`);
+                const aiSessions = await aiRes.json();
+
+                // Update AI count
+                const activeAI = Object.values(aiSessions).filter(s => s && s.active).length;
+                document.getElementById('ai-sessions').textContent = activeAI;
+
+                // Update AI platform status
+                updateAIPlatforms(aiSessions);
+
+                // Fetch activity
+                const activityRes = await fetch(`${API_BASE}/api/activity`);
+                const activityData = await activityRes.json();
+
+                if (activityData.activities && activityData.activities.length > 0) {
+                    updateActivityStream(activityData.activities);
+                }
+
+            } catch (error) {
+                console.error('Failed to fetch ChittyOS data:', error);
+            }
+        }
+
+        function updateAIPlatforms(sessions) {
+            const platformsDiv = document.getElementById('ai-platforms');
+            if (!platformsDiv || !sessions) return;
+
+            const platforms = [
+                { id: 'claude', name: 'Claude Code', icon: 'CC', color: 'purple' },
+                { id: 'gpt', name: 'ChatGPT', icon: 'GPT', color: 'green' },
+                { id: 'gemini', name: 'Gemini', icon: 'G', color: 'blue' }
+            ];
+
+            platformsDiv.innerHTML = platforms.map(platform => {
+                const session = sessions[platform.id] || {};
+                const isActive = session.active;
+                const statusColor = isActive ? 'green' : 'gray';
+                const statusText = isActive ? 'Active' : 'Offline';
+                const opacity = isActive ? '' : 'opacity-60';
+
+                return `
+                    <div class="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg ${opacity}">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-${platform.color}-500/20 rounded-lg flex items-center justify-center">
+                                <span class="text-sm font-bold">${platform.icon}</span>
+                            </div>
+                            <div>
+                                <div class="font-medium">${platform.name}</div>
+                                <div class="text-xs text-gray-400">${session.requests || 0} requests</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-2 h-2 bg-${statusColor}-500 rounded-full"></div>
+                            <span class="text-xs text-${statusColor}-400">${statusText}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateActivityStream(activities) {
+            const stream = document.getElementById('activity-stream');
+            if (!stream || !activities.length) return;
+
+            stream.innerHTML = activities.slice(0, 5).map(a => `
+                <div class="flex items-start space-x-3 p-2 bg-slate-800/30 rounded-lg">
+                    <i data-lucide="activity" class="w-4 h-4 text-gray-400 mt-0.5"></i>
+                    <div class="flex-1">
+                        <div class="text-sm font-medium">${a.source || 'System'}</div>
+                        <div class="text-xs text-gray-400">${a.message}</div>
+                        <div class="text-xs text-gray-500 mt-1">${a.timestamp}</div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Re-initialize icons
+            lucide.createIcons();
+        }
+
+        // Fetch data every 5 seconds
+        fetchChittyOSData();
+        setInterval(fetchChittyOSData, 5000);
+
+        // Load projects
+        function loadProjects() {
+            const projects = [
+                { name: 'ChittyResolution', status: 'hot', messages: 3489, size: '1.7GB' },
+                { name: 'Legal Evidence', status: 'active', messages: 634, size: '0.6GB' },
+                { name: 'ChittyOS Core', status: 'active', messages: 1448, size: '1.3GB' },
+                { name: 'ChittyChain', status: 'hot', messages: 2124, size: '10.9GB' },
+                { name: 'Brand Strategy', status: 'idle', messages: 421, size: '0.3GB' }
+            ];
+
+            const projectsList = document.getElementById('projects-list');
+            projectsList.innerHTML = projects.map(p => `
+                <div class="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg hover:bg-slate-800/70 transition-colors cursor-pointer">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-2 h-2 rounded-full ${getStatusColor(p.status)}"></div>
+                        <div>
+                            <div class="font-medium text-sm">${p.name}</div>
+                            <div class="text-xs text-gray-400">${p.messages} msgs • ${p.size}</div>
+                        </div>
+                    </div>
+                    <span class="text-xs px-2 py-1 rounded ${getStatusBadge(p.status)}">${p.status}</span>
+                </div>
+            `).join('');
+        }
+
+        // Load activity stream
+        function loadActivityStream() {
+            const activities = [
+                { time: '2 mins ago', action: 'Claude Code', detail: 'Dashboard creation started', icon: 'file-plus' },
+                { time: '5 mins ago', action: 'Evidence Ledger', detail: 'ChittyID assigned: #CHT-2024-1247', icon: 'shield' },
+                { time: '12 mins ago', action: 'ChittyChain', detail: 'New block mined #1337', icon: 'blocks' },
+                { time: '18 mins ago', action: 'Notion Sync', detail: 'Project synced successfully', icon: 'database' },
+                { time: '25 mins ago', action: 'System', detail: 'Backup completed', icon: 'save' }
+            ];
+
+            const stream = document.getElementById('activity-stream');
+            stream.innerHTML = activities.map(a => `
+                <div class="flex items-start space-x-3 p-2 bg-slate-800/30 rounded-lg">
+                    <i data-lucide="${a.icon}" class="w-4 h-4 text-gray-400 mt-0.5"></i>
+                    <div class="flex-1">
+                        <div class="text-sm font-medium">${a.action}</div>
+                        <div class="text-xs text-gray-400">${a.detail}</div>
+                        <div class="text-xs text-gray-500 mt-1">${a.time}</div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Re-initialize icons
+            lucide.createIcons();
+        }
+
+        // Update system resources
+        function updateSystemResources() {
+            const cpu = 35 + Math.random() * 30;
+            const memory = 7 + Math.random() * 3;
+            const network = Math.random() * 5;
+
+            document.getElementById('cpu-usage').textContent = `${cpu.toFixed(0)}%`;
+            document.getElementById('cpu-bar').style.width = `${cpu}%`;
+
+            document.getElementById('memory-usage').textContent = `${memory.toFixed(1)}GB`;
+            document.getElementById('memory-bar').style.width = `${(memory/16)*100}%`;
+
+            document.getElementById('network-usage').textContent = `${network.toFixed(1)}MB/s`;
+            document.getElementById('network-bar').style.width = `${(network/10)*100}%`;
+        }
+        setInterval(updateSystemResources, 3000);
+
+        // Helper functions
+        function getStatusColor(status) {
+            const colors = {
+                'hot': 'bg-red-500',
+                'active': 'bg-green-500',
+                'idle': 'bg-yellow-500'
+            };
+            return colors[status] || 'bg-gray-500';
+        }
+
+        function getStatusBadge(status) {
+            const badges = {
+                'hot': 'bg-red-500/20 text-red-400',
+                'active': 'bg-green-500/20 text-green-400',
+                'idle': 'bg-yellow-500/20 text-yellow-400'
+            };
+            return badges[status] || 'bg-gray-500/20 text-gray-400';
+        }
+
+        // Command terminal
+        function toggleCommandMode() {
+            const terminal = document.getElementById('command-terminal');
+            terminal.classList.toggle('hidden');
+            if (!terminal.classList.contains('hidden')) {
+                document.getElementById('terminal-input').focus();
+            }
+        }
+
+        function handleCommand(event) {
+            if (event.key === 'Enter') {
+                const input = document.getElementById('terminal-input');
+                const output = document.getElementById('terminal-output');
+                const command = input.value.trim();
+
+                if (command) {
+                    terminalHistory.push(command);
+                    historyIndex = terminalHistory.length;
+
+                    output.innerHTML += `<br>$ ${command}<br>`;
+
+                    // Process commands
+                    switch(command.toLowerCase()) {
+                        case 'help':
+                            output.innerHTML += `Available commands:<br>
+                                - status: Show system status<br>
+                                - evidence: Open evidence dashboard<br>
+                                - chain: Launch ChittyChain<br>
+                                - sync: Sync with Notion<br>
+                                - clear: Clear terminal<br>`;
+                            break;
+                        case 'status':
+                            output.innerHTML += `System Status: All systems operational<br>
+                                CPU: ${document.getElementById('cpu-usage').textContent}<br>
+                                Memory: ${document.getElementById('memory-usage').textContent}<br>
+                                Network: ${document.getElementById('network-usage').textContent}<br>`;
+                            break;
+                        case 'clear':
+                            output.innerHTML = 'ChittyOS v3.1.4 - Ready<br>';
+                            break;
+                        case 'evidence':
+                            openEvidenceDashboard();
+                            output.innerHTML += 'Opening Evidence Dashboard...<br>';
+                            break;
+                        case 'chain':
+                            launchChittyChain();
+                            output.innerHTML += 'Launching ChittyChain Explorer...<br>';
+                            break;
+                        case 'sync':
+                            openNotionSync();
+                            output.innerHTML += 'Opening Notion Sync...<br>';
+                            break;
+                        default:
+                            output.innerHTML += `Command not found: ${command}<br>`;
+                    }
+
+                    input.value = '';
+                    output.scrollTop = output.scrollHeight;
+                }
+            }
+        }
+
+        // External links
+        function launchChittyChain() {
+            window.open('https://replit.com/@nvshtty/ChittyChain', '_blank');
+        }
+
+        function openEvidenceDashboard() {
+            window.open('file:///Users/nb/configured/chittyos/configs/system/modules/universal-intake/dashboard.html', '_blank');
+        }
+
+        function openNotionSync() {
+            alert('Notion Sync: Feature coming soon!\nThis will integrate with your Notion workspace for seamless project management.');
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            loadProjects();
+            loadActivityStream();
+            updateSystemResources();
+
+            // Refresh activity stream every 10 seconds
+            setInterval(loadActivityStream, 10000);
+        });
+    </script>
+</body>
+</html>

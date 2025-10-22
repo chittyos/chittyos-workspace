@@ -1,0 +1,20 @@
+# Development files
+.ai-coordination/
+*.spec.md
+*.implementation.md
+src/commands/
+src/services/
+src/utils/
+src/config/
+src/auth/
+src/api/
+src/guards/
+src/monitoring/
+tsconfig.json
+*.ts
+
+# Keep only essential files
+# package.json
+# bin/
+# src/index.mjs
+# README.md

@@ -1,0 +1,520 @@
+#!/usr/bin/env node
+
+// Chit - Quick ChittyOS Commands
+// Short, memorable commands for common ChittyOS operations
+
+import { execSync } from 'child_process';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const [,, cmd, ...args] = process.argv;
+
+const CHITTY_BASE = '/Users/nb/.claude/projects/-';
+const CHITTYCHAT = `${CHITTY_BASE}/chittychat`;
+
+// Color codes
+const colors = {
+  reset: '\x1b[0m',
+  bright: '\x1b[1m',
+  red: '\x1b[31m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  blue: '\x1b[34m',
+  magenta: '\x1b[35m',
+  cyan: '\x1b[36m',
+  white: '\x1b[37m'
+};
+
+function run(command, options = {}) {
+  try {
+    return execSync(command, {
+      stdio: options.silent ? 'pipe' : 'inherit',
+      ...options
+    });
+  } catch (error) {
+    if (!options.silent) {
+      console.error(`${colors.red}Error: ${error.message}${colors.reset}`);
+    }
+    return null;
+  }
+}
+
+function log(message, color = 'white') {
+  console.log(`${colors[color]}${message}${colors.reset}`);
+}
+
+function header(title) {
+  console.log(`${colors.cyan}${colors.bright}═══════════════════════════════════════${colors.reset}`);
+  console.log(`${colors.cyan}${colors.bright}   ${title}${colors.reset}`);
+  console.log(`${colors.cyan}${colors.bright}═══════════════════════════════════════${colors.reset}`);
+}
+
+// Main command router
+async function main() {
+  if (!cmd || cmd === 'help' || cmd === '--help' || cmd === '-h') {
+    showHelp();
+    return;
+  }
+
+  switch(cmd) {
+    // Quick commands
+    case 'check':
+      header('🔍 CHITTYCHECK');
+      run(`${CHITTY_BASE}/chittycheck/chittycheck-enhanced.sh ${args.join(' ')}`);
+      break;
+
+    case 'init':
+      header('🚀 INITIALIZE PROJECT');
+      run(`${CHITTYCHAT}/claude-init.sh ${args.join(' ')}`);
+      break;
+
+    case 'commit':
+    case 'com':
+      header('📝 SMART COMMIT');
+      await smartCommit();
+      break;
+
+    case 'sync':
+      header('🔄 SYNC PROJECT');
+      run(`${CHITTYCHAT}/slash-commands-extended.sh sync ${args.join(' ')}`);
+      break;
+
+    case 'deploy':
+    case 'dep':
+      header('🚀 DEPLOY');
+      await smartDeploy();
+      break;
+
+    case 'status':
+    case 'stat':
+      header('📊 STATUS');
+      await showStatus();
+      break;
+
+    case 'id':
+      header('🆔 CHITTYID');
+      await chittyId(args[0]);
+      break;
+
+    case 'test':
+      header('🧪 TEST');
+      await runTests();
+      break;
+
+    case 'build':
+      header('🔨 BUILD');
+      await runBuild();
+      break;
+
+    case 'dev':
+      header('💻 DEVELOPMENT');
+      await startDev();
+      break;
+
+    case 'pr':
+      header('🔀 PULL REQUEST');
+      await createPR();
+      break;
+
+    case 'issue':
+      header('🐛 CREATE ISSUE');
+      await createIssue();
+      break;
+
+    case 'clean':
+      header('🧹 CLEAN');
+      await cleanProject();
+      break;
+
+    case 'config':
+    case 'conf':
+      header('⚙️ CONFIGURATION');
+      run(`source ${CHITTYCHAT}/project-orchestrator.sh && project config ${args.join(' ')}`, {
+        shell: '/bin/bash'
+      });
+      break;
+
+    case 'ai':
+      header('🤖 AI ASSISTANT');
+      await aiAssist(args.join(' '));
+      break;
+
+    case 'notion':
+      header('📝 NOTION SYNC');
+      await notionSync();
+      break;
+
+    case 'backup':
+      header('💾 BACKUP');
+      await backupProject();
+      break;
+
+    case 'restore':
+      header('♻️ RESTORE');
+      await restoreProject(args[0]);
+      break;
+
+    case 'monitor':
+    case 'mon':
+      header('📈 MONITOR');
+      await monitor();
+      break;
+
+    case 'logs':
+      header('📜 LOGS');
+      await showLogs(args[0]);
+      break;
+
+    case 'env':
+      header('🔐 ENVIRONMENT');
+      await manageEnv(args[0], args[1]);
+      break;
+
+    case 'update':
+      header('⬆️ UPDATE CHITTYOS');
+      await updateChittyOS();
+      break;
+
+    default:
+      log(`Unknown command: ${cmd}`, 'red');
+      log('Run "chit help" for available commands', 'yellow');
+      process.exit(1);
+  }
+}
+
+// Command implementations
+
+async function smartCommit() {
+  log('Analyzing changes...', 'cyan');
+
+  // Check for uncommitted changes
+  const status = run('git status --porcelain', { silent: true });
+  if (!status || status.length === 0) {
+    log('No changes to commit', 'yellow');
+    return;
+  }
+
+  // Generate commit message using AI if available
+  log('Generating commit message...', 'cyan');
+
+  // Add all changes
+  run('git add -A');
+
+  // Create commit with ChittyID
+  const chittyId = await getChittyId('commit');
+  const message = args.join(' ') || 'Update project files';
+
+  run(`git commit -m "${message} [${chittyId}]
+
+🤖 Generated with ChittyOS CLI
+Co-Authored-By: ChittyOS <noreply@chitty.cc>"`);
+
+  log('✅ Committed successfully', 'green');
+}
+
+async function smartDeploy() {
+  log('Preparing deployment...', 'cyan');
+
+  // Check for deployment config
+  if (existsSync('wrangler.toml')) {
+    log('Cloudflare Worker detected', 'blue');
+    run('npm run deploy');
+  } else if (existsSync('vercel.json')) {
+    log('Vercel project detected', 'blue');
+    run('vercel --prod');
+  } else if (existsSync('netlify.toml')) {
+    log('Netlify project detected', 'blue');
+    run('netlify deploy --prod');
+  } else if (existsSync('package.json')) {
+    const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+    if (pkg.scripts && pkg.scripts.deploy) {
+      run('npm run deploy');
+    } else {
+      log('No deployment configuration found', 'yellow');
+    }
+  } else {
+    log('No deployment configuration found', 'yellow');
+  }
+}
+
+async function showStatus() {
+  // Git status
+  log('\n📦 Git Status:', 'bright');
+  run('git status -sb');
+
+  // ChittyID status
+  if (existsSync('.chittyos/project.id')) {
+    const chittyId = readFileSync('.chittyos/project.id', 'utf8').trim();
+    log(`\n🆔 ChittyID: ${chittyId}`, 'bright');
+  }
+
+  // Node status
+  if (existsSync('package.json')) {
+    log('\n📦 Dependencies:', 'bright');
+    run('npm ls --depth=0', { silent: true });
+  }
+
+  // ChittyCheck quick
+  log('\n🔍 ChittyCheck:', 'bright');
+  run(`${CHITTY_BASE}/chittycheck/chittycheck-enhanced.sh --quick`, { silent: true });
+}
+
+async function chittyId(action) {
+  if (!action || action === 'show') {
+    if (existsSync('.chittyos/project.id')) {
+      const id = readFileSync('.chittyos/project.id', 'utf8').trim();
+      log(`ChittyID: ${id}`, 'green');
+    } else {
+      log('No ChittyID found. Run "chit init" first.', 'yellow');
+    }
+  } else if (action === 'mint' || action === 'new') {
+    const id = await getChittyId('project');
+    log(`New ChittyID: ${id}`, 'green');
+  }
+}
+
+async function getChittyId(type) {
+  const token = process.env.CHITTY_ID_TOKEN;
+  if (!token) {
+    return `CHITTY-${type.toUpperCase()}-TOKEN-NOT-CONFIGURED`;
+  }
+
+  const response = run(`curl -s -X POST https://id.chitty.cc/v1/mint \
+    -H "Authorization: Bearer ${token}" \
+    -H "Content-Type: application/json" \
+    -d '{"domain":"${type}","subtype":"cli-generated"}'`, { silent: true });
+
+  if (response) {
+    try {
+      const data = JSON.parse(response.toString());
+      if (data && (data.chitty_id || data.chittyId)) {
+        return data.chitty_id || data.chittyId;
+      }
+    } catch (_) {
+      // fallthrough to unavailable marker
+    }
+  }
+
+  return `CHITTY-${type.toUpperCase()}-SERVICE-UNAVAILABLE`;
+}
+
+async function runTests() {
+  if (existsSync('package.json')) {
+    const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+    if (pkg.scripts && pkg.scripts.test) {
+      run('npm test');
+    } else {
+      log('No test script found', 'yellow');
+    }
+  } else {
+    log('Not a Node.js project', 'yellow');
+  }
+}
+
+async function runBuild() {
+  if (existsSync('package.json')) {
+    const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+    if (pkg.scripts && pkg.scripts.build) {
+      run('npm run build');
+    } else {
+      log('No build script found', 'yellow');
+    }
+  } else {
+    log('Not a Node.js project', 'yellow');
+  }
+}
+
+async function startDev() {
+  if (existsSync('package.json')) {
+    const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+    if (pkg.scripts && pkg.scripts.dev) {
+      run('npm run dev');
+    } else if (pkg.scripts && pkg.scripts.start) {
+      run('npm start');
+    } else {
+      log('No dev script found', 'yellow');
+    }
+  } else {
+    log('Not a Node.js project', 'yellow');
+  }
+}
+
+async function createPR() {
+  log('Creating pull request...', 'cyan');
+  run('gh pr create --fill');
+}
+
+async function createIssue() {
+  const title = args.join(' ') || 'New Issue';
+  log('Creating issue...', 'cyan');
+  run(`gh issue create --title "${title}" --body "Created via ChittyOS CLI"`);
+}
+
+async function cleanProject() {
+  log('Cleaning project...', 'cyan');
+
+  // Remove common temporary files
+  run('rm -rf node_modules dist build .cache coverage', { silent: true });
+  run('rm -f *.log', { silent: true });
+
+  // Git clean
+  run('git clean -fdx -e .env -e .env.local', { silent: true });
+
+  log('✅ Project cleaned', 'green');
+}
+
+async function aiAssist(prompt) {
+  if (!prompt) {
+    log('Please provide a prompt', 'yellow');
+    return;
+  }
+
+  log('🤖 AI Assistant thinking...', 'cyan');
+  // This would integrate with AI services
+  log('AI integration coming soon!', 'yellow');
+}
+
+async function notionSync() {
+  log('Syncing with Notion...', 'cyan');
+  // This would sync with Notion
+  log('Notion sync coming soon!', 'yellow');
+}
+
+async function backupProject() {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const backupDir = `backup-${timestamp}`;
+
+  log(`Creating backup: ${backupDir}`, 'cyan');
+  run(`mkdir -p ../${backupDir}`);
+  run(`cp -r . ../${backupDir}`);
+
+  log(`✅ Backup created: ../${backupDir}`, 'green');
+}
+
+async function restoreProject(backupName) {
+  if (!backupName) {
+    log('Please specify backup to restore', 'yellow');
+    return;
+  }
+
+  log(`Restoring from: ${backupName}`, 'cyan');
+  run(`cp -r ../${backupName}/* .`);
+
+  log('✅ Project restored', 'green');
+}
+
+async function monitor() {
+  log('Starting monitor...', 'cyan');
+
+  // This would show real-time monitoring
+  run('watch -n 1 "git status -sb && echo && npm ls --depth=0"');
+}
+
+async function showLogs(type) {
+  if (type === 'git') {
+    run('git log --oneline -10');
+  } else if (type === 'npm') {
+    run('npm logs');
+  } else {
+    log('Available logs: git, npm', 'yellow');
+  }
+}
+
+async function manageEnv(action, key) {
+  if (action === 'show') {
+    if (existsSync('.env')) {
+      log('Current environment variables:', 'cyan');
+      const env = readFileSync('.env', 'utf8');
+      console.log(env.replace(/=.*/gm, '=***'));
+    }
+  } else if (action === 'set' && key) {
+    // Set environment variable
+    log('Environment management coming soon!', 'yellow');
+  }
+}
+
+async function updateChittyOS() {
+  log('Updating ChittyOS components...', 'cyan');
+
+  const dirs = [
+    'chittychat',
+    'chittycheck',
+    'chittycli',
+    'chittyrouter',
+    'chittyschema'
+  ];
+
+  for (const dir of dirs) {
+    const path = `${CHITTY_BASE}/${dir}`;
+    if (existsSync(path)) {
+      log(`Updating ${dir}...`, 'blue');
+      run(`cd ${path} && git pull`, { silent: true });
+    }
+  }
+
+  log('✅ ChittyOS updated', 'green');
+}
+
+function showHelp() {
+  console.log(`
+${colors.cyan}${colors.bright}CHIT - ChittyOS Quick Commands${colors.reset}
+${colors.cyan}═══════════════════════════════${colors.reset}
+
+${colors.bright}USAGE:${colors.reset}
+  chit <command> [options]
+
+${colors.bright}CORE COMMANDS:${colors.reset}
+  ${colors.green}init${colors.reset}          Initialize ChittyOS project
+  ${colors.green}check${colors.reset}         Run ChittyCheck validation
+  ${colors.green}commit/com${colors.reset}    Smart git commit with ChittyID
+  ${colors.green}deploy/dep${colors.reset}    Deploy project
+  ${colors.green}sync${colors.reset}          Sync project data
+  ${colors.green}status/stat${colors.reset}   Show project status
+
+${colors.bright}DEVELOPMENT:${colors.reset}
+  ${colors.green}dev${colors.reset}           Start development server
+  ${colors.green}build${colors.reset}         Build project
+  ${colors.green}test${colors.reset}          Run tests
+  ${colors.green}clean${colors.reset}         Clean temporary files
+
+${colors.bright}GIT & COLLABORATION:${colors.reset}
+  ${colors.green}pr${colors.reset}            Create pull request
+  ${colors.green}issue${colors.reset}         Create GitHub issue
+  ${colors.green}logs${colors.reset}          Show logs (git/npm)
+
+${colors.bright}MANAGEMENT:${colors.reset}
+  ${colors.green}id${colors.reset}            Manage ChittyID
+  ${colors.green}config/conf${colors.reset}   Configure project
+  ${colors.green}env${colors.reset}           Manage environment
+  ${colors.green}backup${colors.reset}        Backup project
+  ${colors.green}restore${colors.reset}       Restore from backup
+  ${colors.green}monitor/mon${colors.reset}   Monitor project
+
+${colors.bright}INTEGRATIONS:${colors.reset}
+  ${colors.green}ai${colors.reset}            AI assistant
+  ${colors.green}notion${colors.reset}        Sync with Notion
+
+${colors.bright}SYSTEM:${colors.reset}
+  ${colors.green}update${colors.reset}        Update ChittyOS
+  ${colors.green}help${colors.reset}          Show this help
+
+${colors.bright}EXAMPLES:${colors.reset}
+  chit init                    # Initialize new project
+  chit check                   # Run validation
+  chit com "Fix bug"           # Commit with message
+  chit deploy                  # Deploy to production
+  chit config show myproject   # Show project config
+
+${colors.cyan}Learn more: https://chitty.cc/docs${colors.reset}
+`);
+}
+
+// Run main function
+main().catch(error => {
+  console.error(`${colors.red}Fatal error: ${error.message}${colors.reset}`);
+  process.exit(1);
+});

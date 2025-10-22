@@ -1,0 +1,96 @@
+# ChittySync Workflows - Cloudflare Workers Configuration
+
+# Sync Orchestrator
+[env.sync-orchestrator]
+name = "chittysync-orchestrator"
+main = "sync-orchestrator.js"
+compatibility_date = "2024-01-01"
+
+[env.sync-orchestrator.durable_objects]
+bindings = [
+  { name = "SYNC_ORCHESTRATOR", class_name = "SyncOrchestrator" }
+]
+
+[[env.sync-orchestrator.migrations]]
+tag = "v1"
+new_classes = ["SyncOrchestrator"]
+
+[env.sync-orchestrator.vars]
+SERVICE_NAME = "ChittySync Orchestrator"
+SERVICE_VERSION = "2.0.0"
+CHITTYOS_ENVIRONMENT = "production"
+GATEWAY_SERVICE_URL = "https://gateway.chitty.cc"
+MCP_REGISTRY_URL = "https://registry.chitty.cc"
+
+# Health Monitor
+[env.health-monitor]
+name = "chittysync-health-monitor"
+main = "health-monitor.js"
+compatibility_date = "2024-01-01"
+
+[env.health-monitor.durable_objects]
+bindings = [
+  { name = "HEALTH_MONITOR", class_name = "HealthMonitor" }
+]
+
+[[env.health-monitor.migrations]]
+tag = "v1"
+new_classes = ["HealthMonitor"]
+
+[env.health-monitor.vars]
+SERVICE_NAME = "ChittySync Health Monitor"
+SERVICE_VERSION = "2.0.0"
+GATEWAY_SERVICE_URL = "https://gateway.chitty.cc"
+
+# Scheduled health checks (every 5 minutes)
+[[env.health-monitor.triggers]]
+crons = ["*/5 * * * *"]
+
+# Deployment Manager
+[env.deployment-manager]
+name = "chittysync-deployment-manager"
+main = "deployment-manager.js"
+compatibility_date = "2024-01-01"
+
+[env.deployment-manager.durable_objects]
+bindings = [
+  { name = "DEPLOYMENT_MANAGER", class_name = "DeploymentManager" }
+]
+
+[[env.deployment-manager.migrations]]
+tag = "v1"
+new_classes = ["DeploymentManager"]
+
+[env.deployment-manager.vars]
+SERVICE_NAME = "ChittySync Deployment Manager"
+SERVICE_VERSION = "2.0.0"
+GATEWAY_SERVICE_URL = "https://gateway.chitty.cc"
+
+# Alert Router
+[env.alert-router]
+name = "chittysync-alert-router"
+main = "alert-router.js"
+compatibility_date = "2024-01-01"
+
+[env.alert-router.durable_objects]
+bindings = [
+  { name = "ALERT_ROUTER", class_name = "AlertRouter" }
+]
+
+[[env.alert-router.migrations]]
+tag = "v1"
+new_classes = ["AlertRouter"]
+
+[env.alert-router.vars]
+SERVICE_NAME = "ChittySync Alert Router"
+SERVICE_VERSION = "2.0.0"
+
+# Secrets (set with `wrangler secret put`)
+# - CHITTY_ID_TOKEN
+# - GOOGLE_API_KEY
+# - GOOGLE_CHAT_WEBHOOK
+# - CLOUDFLARE_ACCOUNT_ID
+# - CLOUDFLARE_API_TOKEN
+# - NEON_API_KEY
+# - GITHUB_TOKEN
+# - SLACK_WEBHOOK

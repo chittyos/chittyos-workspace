@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChittyOS Ecosystem Monitor - 51+ Modules</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="ecosystem-modules.js"></script>
+    <style>
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.5); }
+            50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.8); }
+        }
+        .pulse-glow { animation: pulse-glow 2s infinite; }
+        .glassmorphic {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .module-card {
+            transition: all 0.3s ease;
+        }
+        .module-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
+        }
+        .chittyid-segment {
+            font-family: 'Courier New', monospace;
+            background: rgba(139, 92, 246, 0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 via-slate-900 to-black min-h-screen text-white">
+    <!-- Header -->
+    <header class="glassmorphic sticky top-0 z-50 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <div class="pulse-glow w-12 h-12 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center">
+                    <span class="text-xl font-bold">51+</span>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold">ChittyOS Ecosystem Monitor</h1>
+                    <p class="text-sm text-gray-400">Complete Module Infrastructure</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div id="ecosystem-stats" class="flex items-center space-x-4">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-400" id="active-count">0</div>
+                        <div class="text-xs text-gray-400">Active</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-yellow-400" id="beta-count">0</div>
+                        <div class="text-xs text-gray-400">Beta</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-gray-400" id="paused-count">0</div>
+                        <div class="text-xs text-gray-400">Paused</div>
+                    </div>
+                </div>
+                <div id="system-time" class="text-sm text-gray-400"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="max-w-7xl mx-auto p-6">
+        <!-- ChittyID Schema Visualization -->
+        <div class="glassmorphic rounded-xl p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
+                <i data-lucide="fingerprint" class="w-5 h-5 mr-2 text-purple-400"></i>
+                ChittyID Schema Format
+            </h2>
+            <div class="bg-black/50 rounded-lg p-4 overflow-x-auto">
+                <div class="flex items-center space-x-2 text-lg font-mono" id="chittyid-display">
+                    <span class="chittyid-segment" title="Version">03</span>
+                    <span class="text-gray-500">-</span>
+                    <span class="chittyid-segment" title="Geographic Region">1</span>
+                    <span class="text-gray-500">-</span>
+                    <span class="chittyid-segment" title="Legal Jurisdiction">USA</span>
+                    <span class="text-gray-500">-</span>
+                    <span class="chittyid-segment" title="Sequential ID">0001</span>
+                    <span class="text-gray-500">-</span>
+                    <span class="chittyid-segment" title="Entity Type">P</span>
+                    <span class="text-gray-500">-</span>
+                    <span class="chittyid-segment" title="Year-Month">2509</span>
+                    <span class="text-gray-500">-</span>
+                    <span class="chittyid-segment" title="Trust Level">3</span>
+                    <span class="text-gray-500">-</span>
+                    <span class="chittyid-segment" title="Checksum">97</span>
+                </div>
+                <div class="mt-4 grid grid-cols-4 gap-2 text-xs">
+                    <div><span class="text-purple-400">VV:</span> Version</div>
+                    <div><span class="text-purple-400">G:</span> Region</div>
+                    <div><span class="text-purple-400">LLL:</span> Jurisdiction</div>
+                    <div><span class="text-purple-400">SSSS:</span> Sequential</div>
+                    <div><span class="text-purple-400">T:</span> Entity Type</div>
+                    <div><span class="text-purple-400">YM:</span> Year-Month</div>
+                    <div><span class="text-purple-400">C:</span> Trust Level</div>
+                    <div><span class="text-purple-400">X:</span> Checksum</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chitty Stack Core Status -->
+        <div class="glassmorphic rounded-xl p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
+                <i data-lucide="layers" class="w-5 h-5 mr-2 text-blue-400"></i>
+                Chitty Stack Core Platform
+            </h2>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3" id="chitty-stack">
+                <!-- Chitty Stack modules will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Module Categories -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- Core Infrastructure -->
+            <div class="glassmorphic rounded-xl p-5">
+                <h3 class="text-lg font-semibold mb-3 flex items-center">
+                    <i data-lucide="server" class="w-4 h-4 mr-2 text-green-400"></i>
+                    Core Infrastructure (6)
+                </h3>
+                <div class="space-y-2" id="core-infrastructure">
+                    <!-- Modules will be inserted here -->
+                </div>
+            </div>
+
+            <!-- Identity & Security -->
+            <div class="glassmorphic rounded-xl p-5">
+                <h3 class="text-lg font-semibold mb-3 flex items-center">
+                    <i data-lucide="shield" class="w-4 h-4 mr-2 text-yellow-400"></i>
+                    Identity & Security (6)
+                </h3>
+                <div class="space-y-2" id="identity-security">
+                    <!-- Modules will be inserted here -->
+                </div>
+            </div>
+
+            <!-- Legal Technology -->
+            <div class="glassmorphic rounded-xl p-5">
+                <h3 class="text-lg font-semibold mb-3 flex items-center">
+                    <i data-lucide="scale" class="w-4 h-4 mr-2 text-red-400"></i>
+                    Legal Technology (10)
+                </h3>
+                <div class="space-y-2" id="legal-tech">
+                    <!-- Modules will be inserted here -->
+                </div>
+            </div>
+
+            <!-- Property Management -->
+            <div class="glassmorphic rounded-xl p-5">
+                <h3 class="text-lg font-semibold mb-3 flex items-center">
+                    <i data-lucide="home" class="w-4 h-4 mr-2 text-purple-400"></i>
+                    Property Management (6)
+                </h3>
+                <div class="space-y-2" id="property-management">
+                    <!-- Modules will be inserted here -->
+                </div>
+            </div>
+
+            <!-- Recent Development -->
+            <div class="glassmorphic rounded-xl p-5">
+                <h3 class="text-lg font-semibold mb-3 flex items-center">
+                    <i data-lucide="sparkles" class="w-4 h-4 mr-2 text-cyan-400"></i>
+                    Recent Development (5)
+                </h3>
+                <div class="space-y-2" id="recent-development">
+                    <!-- Modules will be inserted here -->
+                </div>
+            </div>
+
+            <!-- Other Modules -->
+            <div class="glassmorphic rounded-xl p-5">
+                <h3 class="text-lg font-semibold mb-3 flex items-center">
+                    <i data-lucide="box" class="w-4 h-4 mr-2 text-indigo-400"></i>
+                    Additional Modules (18)
+                </h3>
+                <div class="space-y-2">
+                    <div class="text-sm text-gray-400">
+                        <div>• Automation Tools (5)</div>
+                        <div>• Financial & Business (5)</div>
+                        <div>• Business Operations (4)</div>
+                        <div>• Communication & Support (4)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Module Distribution Chart -->
+        <div class="glassmorphic rounded-xl p-6">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
+                <i data-lucide="pie-chart" class="w-5 h-5 mr-2 text-pink-400"></i>
+                Module Distribution
+            </h2>
+            <div class="h-64">
+                <canvas id="module-chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Update system time
+        function updateSystemTime() {
+            const now = new Date();
+            document.getElementById('system-time').textContent = now.toLocaleString();
+        }
+        setInterval(updateSystemTime, 1000);
+        updateSystemTime();
+
+        // Load ecosystem stats
+        function loadEcosystemStats() {
+            const stats = getEcosystemStats();
+            document.getElementById('active-count').textContent = stats.active;
+            document.getElementById('beta-count').textContent = stats.beta;
+            document.getElementById('paused-count').textContent = stats.paused;
+        }
+
+        // Render module card
+        function renderModuleCard(module) {
+            const statusColor = {
+                active: 'bg-green-500',
+                beta: 'bg-yellow-500',
+                paused: 'bg-gray-500'
+            };
+
+            return `
+                <div class="module-card bg-slate-800/50 rounded-lg p-3 flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-2 h-2 rounded-full ${statusColor[module.status]}"></div>
+                        <div>
+                            <div class="text-sm font-medium">${module.name}</div>
+                            <div class="text-xs text-gray-400">${module.description}</div>
+                            ${module.updated ? `<div class="text-xs text-gray-500">Updated: ${module.updated}</div>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Render Chitty Stack modules
+        function renderChittyStack() {
+            const container = document.getElementById('chitty-stack');
+            const modules = CHITTYOS_ECOSYSTEM.chittyStack.modules;
+
+            container.innerHTML = modules.map(module => {
+                const statusColor = module.status === 'paused' ? 'bg-gray-500' : 'bg-green-500';
+                const opacity = module.status === 'paused' ? 'opacity-60' : '';
+
+                return `
+                    <div class="text-center ${opacity}">
+                        <div class="bg-slate-800/50 rounded-lg p-3 module-card">
+                            <div class="w-3 h-3 rounded-full ${statusColor} mx-auto mb-2"></div>
+                            <div class="text-xs font-medium">${module.name}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Render module categories
+        function renderModuleCategories() {
+            // Core Infrastructure
+            const coreDiv = document.getElementById('core-infrastructure');
+            coreDiv.innerHTML = CHITTYOS_ECOSYSTEM.coreInfrastructure.modules
+                .map(module => renderModuleCard(module)).join('');
+
+            // Identity & Security
+            const identityDiv = document.getElementById('identity-security');
+            identityDiv.innerHTML = CHITTYOS_ECOSYSTEM.identitySecurity.modules
+                .map(module => renderModuleCard(module)).join('');
+
+            // Legal Technology
+            const legalDiv = document.getElementById('legal-tech');
+            legalDiv.innerHTML = CHITTYOS_ECOSYSTEM.legalTech.modules
+                .map(module => renderModuleCard(module)).join('');
+
+            // Property Management
+            const propertyDiv = document.getElementById('property-management');
+            propertyDiv.innerHTML = CHITTYOS_ECOSYSTEM.propertyManagement.modules
+                .map(module => renderModuleCard(module)).join('');
+
+            // Recent Development
+            const recentDiv = document.getElementById('recent-development');
+            recentDiv.innerHTML = CHITTYOS_ECOSYSTEM.recentDevelopment.modules
+                .map(module => renderModuleCard(module)).join('');
+        }
+
+        // Create module distribution chart
+        function createModuleChart() {
+            const ctx = document.getElementById('module-chart').getContext('2d');
+
+            const data = {
+                labels: Object.values(CHITTYOS_ECOSYSTEM).map(cat => cat.name),
+                datasets: [{
+                    data: Object.values(CHITTYOS_ECOSYSTEM).map(cat => cat.modules.length),
+                    backgroundColor: [
+                        'rgba(139, 92, 246, 0.8)',
+                        'rgba(59, 130, 246, 0.8)',
+                        'rgba(239, 68, 68, 0.8)',
+                        'rgba(245, 158, 11, 0.8)',
+                        'rgba(16, 185, 129, 0.8)',
+                        'rgba(236, 72, 153, 0.8)',
+                        'rgba(99, 102, 241, 0.8)',
+                        'rgba(168, 85, 247, 0.8)',
+                        'rgba(6, 182, 212, 0.8)',
+                        'rgba(251, 146, 60, 0.8)'
+                    ],
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    borderWidth: 1
+                }]
+            };
+
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: 'white',
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            loadEcosystemStats();
+            renderChittyStack();
+            renderModuleCategories();
+            createModuleChart();
+
+            // Re-initialize icons after dynamic content
+            lucide.createIcons();
+
+            // Animate ChittyID segments
+            setInterval(() => {
+                const segments = document.querySelectorAll('.chittyid-segment');
+                const randomSegment = segments[Math.floor(Math.random() * segments.length)];
+                randomSegment.style.background = 'rgba(139, 92, 246, 0.3)';
+                setTimeout(() => {
+                    randomSegment.style.background = 'rgba(139, 92, 246, 0.1)';
+                }, 500);
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

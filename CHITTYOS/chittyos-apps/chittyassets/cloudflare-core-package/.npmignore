@@ -1,0 +1,38 @@
+# Source files
+src/
+*.ts
+!*.d.ts
+
+# Development files
+tsconfig.json
+.eslintrc*
+.prettierrc*
+jest.config.*
+vitest.config.*
+
+# Build artifacts
+node_modules/
+.env
+.env.*
+
+# Version control
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Misc
+.DS_Store
+Thumbs.db

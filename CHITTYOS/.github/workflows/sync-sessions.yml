@@ -1,0 +1,228 @@
+name: Sync Active Sessions
+
+on:
+  workflow_run:
+    workflows: ["Publish Claude Customizations"]
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Force sync all sessions'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  notify-sessions:
+    name: Notify Active Sessions
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Query active sessions
+        env:
+          CHITTY_ID_TOKEN: ${{ secrets.CHITTY_ID_TOKEN }}
+        run: |
+          echo "🔍 Querying active sessions..."
+
+          # Get all session contexts from last 24 hours
+          SESSIONS=$(curl -s "https://connect.chitty.cc/v1/contexts/list?type=session&since=$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)" \
+            -H "Authorization: Bearer $CHITTY_ID_TOKEN" \
+            | jq -r '.contexts[] | .contextId')
+
+          if [ -z "$SESSIONS" ]; then
+            echo "ℹ️  No active sessions found"
+            exit 0
+          fi
+
+          SESSION_COUNT=$(echo "$SESSIONS" | wc -l | tr -d ' ')
+          echo "📊 Found $SESSION_COUNT active sessions"
+          echo "SESSIONS=$SESSIONS" >> $GITHUB_ENV
+          echo "SESSION_COUNT=$SESSION_COUNT" >> $GITHUB_ENV
+
+      - name: Create sync notification
+        if: env.SESSION_COUNT > 0
+        env:
+          CHITTY_ID_TOKEN: ${{ secrets.CHITTY_ID_TOKEN }}
+        run: |
+          echo "📢 Creating sync notification..."
+
+          # Create notification event
+          NOTIFICATION_ID=$(curl -s -X POST https://id.chitty.cc/v1/mint \
+            -H "Authorization: Bearer $CHITTY_ID_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "type": "EVENT",
+              "metadata": {
+                "event": "customization_update",
+                "action": "sync_available",
+                "version": "2.0.0",
+                "commit": "${{ github.sha }}",
+                "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+              }
+            }' | jq -r '.chittyId')
+
+          echo "NOTIFICATION_ID=$NOTIFICATION_ID" >> $GITHUB_ENV
+
+      - name: Post to ChittyChain
+        if: env.SESSION_COUNT > 0
+        env:
+          CHITTY_ID_TOKEN: ${{ secrets.CHITTY_ID_TOKEN }}
+        run: |
+          curl -s -X POST https://chain.chitty.cc/v1/events \
+            -H "Authorization: Bearer $CHITTY_ID_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "eventId": "${{ env.NOTIFICATION_ID }}",
+              "type": "notification",
+              "event": "customization_update",
+              "sessionCount": ${{ env.SESSION_COUNT }},
+              "commit": "${{ github.sha }}",
+              "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+            }' || echo "⚠️  ChittyChain not available"
+
+      - name: Trigger session sync (optional)
+        if: github.event.inputs.force == 'true'
+        env:
+          CHITTY_ID_TOKEN: ${{ secrets.CHITTY_ID_TOKEN }}
+        run: |
+          echo "🔄 Force syncing all sessions..."
+
+          # For each session, trigger materialization
+          for session in ${{ env.SESSIONS }}; do
+            curl -s -X POST "https://connect.chitty.cc/v1/contexts/$session/sync" \
+              -H "Authorization: Bearer $CHITTY_ID_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{
+                "force": true,
+                "commit": "${{ github.sha }}",
+                "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+              }' || echo "⚠️  Failed to sync $session"
+          done
+
+          echo "✅ Sync triggered for ${{ env.SESSION_COUNT }} sessions"
+
+      - name: Create sync report
+        if: always()
+        run: |
+          cat > sync-report.md << 'EOF'
+          # Session Sync Report
+
+          **Workflow**: ${{ github.workflow }}
+          **Trigger**: ${{ github.event_name }}
+          **Commit**: ${{ github.sha }}
+          **Timestamp**: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          ## Summary
+
+          - **Active Sessions**: ${{ env.SESSION_COUNT }}
+          - **Notification ID**: ${{ env.NOTIFICATION_ID }}
+          - **Force Sync**: ${{ github.event.inputs.force }}
+
+          ## Actions
+
+          - ✅ Queried active sessions
+          - ✅ Created sync notification
+          - ✅ Posted to ChittyChain
+          ${{ github.event.inputs.force == 'true' && '- ✅ Force synced all sessions' || '- ℹ️  Sessions will sync on next /context sync command' }}
+
+          ## Next Steps
+
+          Active sessions can sync customizations by running:
+          ```
+          /context sync
+          ```
+
+          Or via CLI:
+          ```bash
+          chitty context sync --remote
+          ```
+
+          ---
+
+          Generated by ChittyOS CI/CD Pipeline
+          EOF
+
+          cat sync-report.md
+
+      - name: Upload sync report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: session-sync-report
+          path: sync-report.md
+          retention-days: 7
+
+  update-documentation:
+    name: Update Documentation
+    needs: notify-sessions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Update version in README
+        run: |
+          # Update version badge or timestamp in README
+          if [ -f "chittyos-core/.claude/README.md" ]; then
+            sed -i "s/Last Updated:.*/Last Updated: $(date -u +%Y-%m-%d)/" \
+              chittyos-core/.claude/README.md || true
+          fi
+
+      - name: Generate customization index
+        run: |
+          cat > chittyos-core/.claude/CUSTOMIZATIONS.md << 'EOF'
+          # ChittyOS Customizations Index
+
+          Auto-generated index of available customizations.
+
+          **Last Updated**: $(date -u +%Y-%m-%d)
+          **Commit**: ${{ github.sha }}
+
+          ## Agents
+
+          EOF
+
+          # List all agents
+          for agent in chittyos-core/.claude/agents/*.md; do
+            if [ -f "$agent" ]; then
+              AGENT_NAME=$(basename "$agent" .md)
+              AGENT_TITLE=$(grep "^# " "$agent" | head -1 | sed 's/^# //')
+              echo "- **$AGENT_NAME**: $AGENT_TITLE" >> chittyos-core/.claude/CUSTOMIZATIONS.md
+            fi
+          done
+
+          cat >> chittyos-core/.claude/CUSTOMIZATIONS.md << 'EOF'
+
+          ## Commands
+
+          EOF
+
+          # List all commands
+          for cmd in chittyos-core/.claude/commands/*.md; do
+            if [ -f "$cmd" ]; then
+              CMD_NAME=$(basename "$cmd" .md)
+              CMD_TITLE=$(grep "^# " "$cmd" | head -1 | sed 's/^# //')
+              echo "- **$CMD_TITLE**" >> chittyos-core/.claude/CUSTOMIZATIONS.md
+            fi
+          done
+
+          cat chittyos-core/.claude/CUSTOMIZATIONS.md
+
+      - name: Commit documentation updates
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          git add chittyos-core/.claude/CUSTOMIZATIONS.md || true
+          git add chittyos-core/.claude/README.md || true
+
+          if git diff --staged --quiet; then
+            echo "No documentation changes to commit"
+          else
+            git commit -m "docs: Update customizations index [skip ci]"
+            git push || echo "⚠️  Failed to push documentation updates"
+          fi

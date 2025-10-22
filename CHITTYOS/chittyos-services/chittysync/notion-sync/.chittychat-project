@@ -1,0 +1,6 @@
+{
+  "name": "notion-sync",
+  "type": "chittychat-integrated",
+  "description": "Hardened Notion sync with ChittyChat integration",
+  "chittyosCompatible": true
+}

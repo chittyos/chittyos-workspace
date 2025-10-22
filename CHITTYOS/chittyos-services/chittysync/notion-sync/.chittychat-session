@@ -1,0 +1,30 @@
+{
+  "projectId": "notion-sync",
+  "projectName": "Notion Sync with ChittyChat Integration",
+  "sessionType": "chittychat-integrated",
+  "chittyosVersion": "1.0.1",
+  "features": {
+    "notionSync": true,
+    "chittychatBridge": true,
+    "contextBridge": true,
+    "distributedSync": true,
+    "atomicFacts": true
+  },
+  "integration": {
+    "services": [
+      "ChittyRouter",
+      "ChittyTrust",
+      "ChittyLedger",
+      "ChittyTrace",
+      "ChittyChain"
+    ],
+    "dataFlow": "ChittyChat → AtomicFacts → Notion",
+    "endpoints": {
+      "health": "/chittychat/health",
+      "sync": "/chittychat/sync",
+      "status": "/chittychat/status"
+    }
+  },
+  "timestamp": "2025-09-19T23:36:32.775Z",
+  "lastUpdated": "2025-09-19T23:36:32.784Z"
+}

@@ -1,0 +1,27 @@
+{
+  "name": "chittysync-cli",
+  "version": "2.0.0",
+  "description": "Unified CLI for ChittySync orchestration hub",
+  "main": "chittysync.js",
+  "bin": {
+    "chittysync": "./chittysync.js"
+  },
+  "type": "module",
+  "scripts": {
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "keywords": [
+    "chittysync",
+    "chittyos",
+    "orchestration",
+    "sync"
+  ],
+  "author": "ChittyOS",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^12.0.0",
+    "chalk": "^5.3.0",
+    "ora": "^8.0.1",
+    "conf": "^12.0.0"
+  }
+}

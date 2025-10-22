@@ -1,0 +1,45 @@
+# 1. Upload users via Admin Console
+Go to: https://admin.google.com
+Navigate to: Directory > Users > Bulk upload users
+Upload: google_users.csv
+
+# 2. Create groups via Admin Console
+Navigate to: Directory > Groups
+Click: Create multiple groups
+Upload: google_groups.csv
+
+# 3. Configure domains
+Add these domains in Admin Console > Account > Domains:
+- aribia.llc (primary)
+- chicagofurnishedcondos.com
+- nevershitty.com
+- byaribia.com
+- cozycastlechicago.com
+- villavistachicago.com
+- itcanbellc.com
+- jeanarlene.com
+- apt-arlene.com
+- chittyservices.com
+- unclesteve.org
+- cozy-castle.com
+- lakeside-loft.com
+
+# 4. Set up email migration
+Use Google Workspace Migration tool:
+https://tools.google.com/dlpage/gwmigration
+
+# 5. Configure email routing
+For each group, enable:
+- Collaborative Inbox features
+- Allow external email
+- Set moderation as needed
+
+# 6. Add user aliases
+Nick's aliases:
+- nick@chicagofurnishedcondos.com
+- nick@nevershitty.com
+- nick@itcanbellc.com
+- nick@jeanarlene.com
+
+# 7. Migrate SharePoint to Google Drive
+Use Google Drive Migration tool or rclone

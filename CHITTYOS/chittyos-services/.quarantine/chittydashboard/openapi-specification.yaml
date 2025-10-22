@@ -1,0 +1,1401 @@
+openapi: 3.0.3
+info:
+  title: ChittyOS API
+  description: |
+    Complete API specification for the ChittyOS ecosystem, including AutoRAG,
+    OAuth 2.0 authorization, service registry, MCP integration, and system monitoring.
+
+    ## Authentication
+
+    ChittyOS uses OAuth 2.0 with Bearer tokens for authentication. Most endpoints
+    require a valid access token with appropriate scopes.
+
+    ## Rate Limiting
+
+    API requests are rate limited per client:
+    - **Standard**: 1000 requests per hour
+    - **Premium**: 5000 requests per hour
+    - **Enterprise**: 20000 requests per hour
+
+    ## Error Handling
+
+    All errors follow the RFC 7807 Problem Details format with additional
+    ChittyOS-specific error codes and context.
+
+  version: 1.0.1
+  contact:
+    name: ChittyOS API Support
+    email: api-support@chitty.cc
+    url: https://docs.chitty.cc/support
+  license:
+    name: ChittyOS License
+    url: https://chitty.cc/license
+  termsOfService: https://chitty.cc/terms
+
+servers:
+  - url: https://registry.chitty.cc
+    description: Production API server
+  - url: https://staging.chitty.cc
+    description: Staging API server
+  - url: http://localhost:8787
+    description: Local development server
+
+tags:
+  - name: AutoRAG
+    description: Retrieval-Augmented Generation queries
+  - name: OAuth
+    description: OAuth 2.0 authorization endpoints
+  - name: Registry
+    description: Service registry management
+  - name: MCP
+    description: Model Context Protocol integration
+  - name: Evidence
+    description: Evidence file access and search
+  - name: Sessions
+    description: Session sync and management
+  - name: Metrics
+    description: System metrics and monitoring
+  - name: Health
+    description: Health checks and status
+  - name: Documentation
+    description: Dynamic API documentation
+
+security:
+  - BearerAuth: []
+  - OAuth2: []
+
+paths:
+  # AutoRAG Endpoints
+  /api/autorag:
+    post:
+      tags: [AutoRAG]
+      summary: Process AutoRAG query
+      description: |
+        Submit a query for Retrieval-Augmented Generation processing.
+        The system will search the knowledge base and generate a contextual response.
+      operationId: processAutoRAGQuery
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AutoRAGRequest'
+            examples:
+              basic_query:
+                summary: Basic query example
+                value:
+                  query: "How do I authenticate with the ChittyOS API?"
+                  model: "@cf/meta/llama-3.1-8b-instruct"
+                  retrievalCount: 5
+              advanced_query:
+                summary: Advanced query with session
+                value:
+                  query: "Search for authentication errors in system logs"
+                  model: "@cf/meta/llama-3.1-8b-instruct"
+                  retrievalCount: 10
+                  threshold: 0.7
+                  sessionId: "session-123"
+      responses:
+        '200':
+          description: AutoRAG response generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AutoRAGResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # OAuth Endpoints
+  /oauth/authorize:
+    get:
+      tags: [OAuth]
+      summary: OAuth authorization endpoint
+      description: |
+        Initiate OAuth 2.0 authorization flow. Redirects user to consent page
+        or automatically approves for trusted clients.
+      operationId: authorizeOAuth
+      security: []
+      parameters:
+        - name: client_id
+          in: query
+          required: true
+          schema:
+            type: string
+          example: "mcp_server_123"
+        - name: redirect_uri
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uri
+          example: "https://myapp.com/oauth/callback"
+        - name: scope
+          in: query
+          required: true
+          schema:
+            type: string
+          example: "chittyos:read mcp:server"
+        - name: response_type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [code]
+          example: "code"
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+          example: "random-state-string"
+      responses:
+        '302':
+          description: Redirect to callback URL with authorization code
+          headers:
+            Location:
+              schema:
+                type: string
+                format: uri
+                example: "https://myapp.com/oauth/callback?code=auth_code_123&state=random-state-string"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /oauth/token:
+    post:
+      tags: [OAuth]
+      summary: OAuth token exchange
+      description: Exchange authorization code for access token
+      operationId: exchangeOAuthToken
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - grant_type
+                - code
+                - client_id
+                - client_secret
+                - redirect_uri
+              properties:
+                grant_type:
+                  type: string
+                  enum: [authorization_code, refresh_token]
+                code:
+                  type: string
+                  description: Authorization code (for authorization_code grant)
+                client_id:
+                  type: string
+                client_secret:
+                  type: string
+                redirect_uri:
+                  type: string
+                  format: uri
+                refresh_token:
+                  type: string
+                  description: Refresh token (for refresh_token grant)
+      responses:
+        '200':
+          description: Token exchange successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /oauth/introspect:
+    post:
+      tags: [OAuth]
+      summary: Token introspection
+      description: Validate and get information about an access token
+      operationId: introspectToken
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - token
+              properties:
+                token:
+                  type: string
+                  description: The token to introspect
+      responses:
+        '200':
+          description: Token introspection result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenIntrospection'
+
+  # Registry Endpoints
+  /api/registry:
+    get:
+      tags: [Registry]
+      summary: List all registered services
+      description: Retrieve all services in the ChittyOS registry
+      operationId: listServices
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [AI_SERVICES, TOOLS, EXTERNAL_APIS, CHITTYOS_MODULES]
+          description: Filter by service category
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive, maintenance]
+          description: Filter by service status
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: List of registered services
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceList'
+
+  /api/registry/services:
+    post:
+      tags: [Registry]
+      summary: Register a new service
+      description: Register a new service in the ChittyOS registry
+      operationId: registerService
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceRegistration'
+      responses:
+        '201':
+          description: Service registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Service'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Service already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/registry/services/{serviceId}:
+    get:
+      tags: [Registry]
+      summary: Get service details
+      operationId: getService
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: serviceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Service details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Service'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Registry]
+      summary: Update service
+      operationId: updateService
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: serviceId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceUpdate'
+      responses:
+        '200':
+          description: Service updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Service'
+
+    delete:
+      tags: [Registry]
+      summary: Delete service
+      operationId: deleteService
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: serviceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Service deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # MCP Endpoints
+  /api/mcp/register:
+    post:
+      tags: [MCP]
+      summary: Register MCP server
+      description: |
+        Register a new Model Context Protocol server with ChittyOS.
+        This creates OAuth credentials for the MCP server.
+      operationId: registerMCPServer
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MCPRegistration'
+      responses:
+        '201':
+          description: MCP server registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPCredentials'
+
+  /api/mcp/servers:
+    get:
+      tags: [MCP]
+      summary: List MCP servers
+      description: List all registered MCP servers
+      operationId: listMCPServers
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of MCP servers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  servers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MCPServer'
+
+  # Evidence Endpoints
+  /api/evidence:
+    get:
+      tags: [Evidence]
+      summary: List evidence files
+      description: Get list of available evidence files
+      operationId: listEvidenceFiles
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: path
+          in: query
+          schema:
+            type: string
+          description: Directory path filter
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [log, json, txt, md, csv]
+          description: File type filter
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Date filter (ISO 8601)
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 100
+      responses:
+        '200':
+          description: List of evidence files
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceFileList'
+
+  /api/evidence/content:
+    post:
+      tags: [Evidence]
+      summary: Read file content
+      description: Read the content of a specific evidence file
+      operationId: readEvidenceFile
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - path
+              properties:
+                path:
+                  type: string
+                  description: File path to read
+                encoding:
+                  type: string
+                  enum: [utf-8, base64]
+                  default: utf-8
+      responses:
+        '200':
+          description: File content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileContent'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # Session Endpoints
+  /api/session-sync/register:
+    post:
+      tags: [Sessions]
+      summary: Register session
+      description: Register a new session for cross-platform sync
+      operationId: registerSession
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SessionRegistration'
+      responses:
+        '201':
+          description: Session registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+
+  /api/session-sync/status:
+    get:
+      tags: [Sessions]
+      summary: Get session sync status
+      operationId: getSessionSyncStatus
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Session sync status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionSyncStatus'
+
+  # Metrics Endpoints
+  /api/metrics:
+    get:
+      tags: [Metrics]
+      summary: Get system metrics
+      description: Retrieve current system performance metrics
+      operationId: getMetrics
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: timeframe
+          in: query
+          schema:
+            type: string
+            enum: [1h, 6h, 24h, 7d]
+            default: 1h
+          description: Metrics timeframe
+      responses:
+        '200':
+          description: System metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemMetrics'
+
+  /api/metrics/custom:
+    post:
+      tags: [Metrics]
+      summary: Record custom metric
+      description: Record a custom metric data point
+      operationId: recordCustomMetric
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomMetric'
+      responses:
+        '201':
+          description: Metric recorded successfully
+
+  # Health Endpoints
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      description: Get system health status
+      operationId: healthCheck
+      security: []
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+        '503':
+          description: System is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+
+  /api/status:
+    get:
+      tags: [Health]
+      summary: Detailed system status
+      description: Get detailed system status including all components
+      operationId: getSystemStatus
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Detailed system status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailedStatus'
+
+  # Documentation Endpoints
+  /docs:
+    get:
+      tags: [Documentation]
+      summary: API documentation index
+      description: Get API documentation overview
+      operationId: getDocumentationIndex
+      security: []
+      responses:
+        '200':
+          description: Documentation index
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /docs/api:
+    get:
+      tags: [Documentation]
+      summary: OpenAPI specification
+      description: Get OpenAPI 3.0 specification
+      operationId: getOpenAPISpec
+      security: []
+      responses:
+        '200':
+          description: OpenAPI specification
+          content:
+            application/json:
+              schema:
+                type: object
+            application/yaml:
+              schema:
+                type: string
+
+  /docs/mcp:
+    get:
+      tags: [Documentation]
+      summary: MCP integration documentation
+      description: Get Model Context Protocol integration documentation
+      operationId: getMCPDocumentation
+      security: []
+      responses:
+        '200':
+          description: MCP documentation
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /docs/generate:
+    post:
+      tags: [Documentation]
+      summary: Generate AI documentation
+      description: Generate documentation using AI based on current system state
+      operationId: generateAIDocumentation
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                topic:
+                  type: string
+                  description: Documentation topic to generate
+                format:
+                  type: string
+                  enum: [markdown, html, json]
+                  default: markdown
+      responses:
+        '200':
+          description: Generated documentation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: string
+                  format:
+                    type: string
+                  generatedAt:
+                    type: string
+                    format: date-time
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from OAuth flow
+
+    OAuth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: /oauth/authorize
+          tokenUrl: /oauth/token
+          scopes:
+            chittyos:read: Read access to ChittyOS services
+            chittyos:write: Write access to register/update services
+            chittyos:admin: Administrative access
+            mcp:server: MCP server operations
+
+  schemas:
+    # AutoRAG Schemas
+    AutoRAGRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          description: The query to process
+          minLength: 1
+          maxLength: 2000
+          example: "How do I authenticate with the ChittyOS API?"
+        model:
+          type: string
+          description: AI model to use
+          default: "@cf/meta/llama-3.1-8b-instruct"
+          example: "@cf/meta/llama-3.1-8b-instruct"
+        retrievalCount:
+          type: integer
+          description: Number of documents to retrieve
+          minimum: 1
+          maximum: 20
+          default: 5
+        threshold:
+          type: number
+          description: Similarity threshold for retrieval
+          minimum: 0
+          maximum: 1
+          default: 0.7
+        sessionId:
+          type: string
+          description: Optional session ID for context
+          example: "session-123"
+
+    AutoRAGResponse:
+      type: object
+      properties:
+        response:
+          type: string
+          description: Generated response
+        sources:
+          type: array
+          items:
+            type: object
+            properties:
+              file:
+                type: string
+              relevance:
+                type: number
+              excerpt:
+                type: string
+        metadata:
+          type: object
+          properties:
+            processingTime:
+              type: number
+              description: Processing time in seconds
+            tokensUsed:
+              type: integer
+            model:
+              type: string
+
+    # OAuth Schemas
+    TokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: JWT access token
+        token_type:
+          type: string
+          enum: [Bearer]
+        expires_in:
+          type: integer
+          description: Token lifetime in seconds
+        scope:
+          type: string
+          description: Granted scopes
+        refresh_token:
+          type: string
+          description: Refresh token
+
+    TokenIntrospection:
+      type: object
+      properties:
+        active:
+          type: boolean
+        client_id:
+          type: string
+        scope:
+          type: string
+        exp:
+          type: integer
+        iat:
+          type: integer
+
+    # Service Registry Schemas
+    ServiceList:
+      type: object
+      properties:
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/Service'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    Service:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [AI_SERVICES, TOOLS, EXTERNAL_APIS, CHITTYOS_MODULES]
+        endpoint:
+          type: string
+          format: uri
+        status:
+          type: string
+          enum: [active, inactive, maintenance]
+        version:
+          type: string
+        healthCheck:
+          type: string
+        metadata:
+          type: object
+        registeredAt:
+          type: string
+          format: date-time
+        lastSeen:
+          type: string
+          format: date-time
+
+    ServiceRegistration:
+      type: object
+      required:
+        - name
+        - category
+        - endpoint
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        category:
+          type: string
+          enum: [AI_SERVICES, TOOLS, EXTERNAL_APIS, CHITTYOS_MODULES]
+        endpoint:
+          type: string
+          format: uri
+        healthCheck:
+          type: string
+          description: Health check endpoint path
+        version:
+          type: string
+        requiredAuth:
+          type: boolean
+          default: true
+        metadata:
+          type: object
+
+    ServiceUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive, maintenance]
+        endpoint:
+          type: string
+          format: uri
+        healthCheck:
+          type: string
+        version:
+          type: string
+        metadata:
+          type: object
+
+    # MCP Schemas
+    MCPRegistration:
+      type: object
+      required:
+        - name
+        - endpoint
+        - capabilities
+        - tools
+        - redirectUris
+        - allowedScopes
+      properties:
+        name:
+          type: string
+          description: MCP server name
+        description:
+          type: string
+          description: Server description
+        endpoint:
+          type: string
+          description: MCP endpoint URL
+        capabilities:
+          type: array
+          items:
+            type: string
+          example: ["read_files", "search_files"]
+        tools:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              description:
+                type: string
+              inputSchema:
+                type: object
+        redirectUris:
+          type: array
+          items:
+            type: string
+            format: uri
+        allowedScopes:
+          type: array
+          items:
+            type: string
+
+    MCPCredentials:
+      type: object
+      properties:
+        clientId:
+          type: string
+        clientSecret:
+          type: string
+        authorizationUrl:
+          type: string
+          format: uri
+        tokenUrl:
+          type: string
+          format: uri
+        registeredAt:
+          type: string
+          format: date-time
+
+    MCPServer:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        endpoint:
+          type: string
+        capabilities:
+          type: array
+          items:
+            type: string
+        tools:
+          type: array
+          items:
+            type: object
+        status:
+          type: string
+          enum: [active, inactive, error]
+        lastSeen:
+          type: string
+          format: date-time
+
+    # Evidence Schemas
+    EvidenceFileList:
+      type: object
+      properties:
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/EvidenceFile'
+        total:
+          type: integer
+        filtered:
+          type: integer
+
+    EvidenceFile:
+      type: object
+      properties:
+        path:
+          type: string
+        type:
+          type: string
+        size:
+          type: integer
+        modified:
+          type: string
+          format: date-time
+        permissions:
+          type: string
+        metadata:
+          type: object
+
+    FileContent:
+      type: object
+      properties:
+        path:
+          type: string
+        content:
+          type: string
+        encoding:
+          type: string
+        size:
+          type: integer
+        checksum:
+          type: string
+
+    # Session Schemas
+    SessionRegistration:
+      type: object
+      required:
+        - platform
+        - sessionId
+      properties:
+        platform:
+          type: string
+          enum: [claude, gpt, gemini, mcp]
+        sessionId:
+          type: string
+        metadata:
+          type: object
+
+    Session:
+      type: object
+      properties:
+        id:
+          type: string
+        platform:
+          type: string
+        sessionId:
+          type: string
+        status:
+          type: string
+          enum: [active, paused, completed, error]
+        startTime:
+          type: string
+          format: date-time
+        lastActivity:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+
+    SessionSyncStatus:
+      type: object
+      properties:
+        totalSessions:
+          type: integer
+        activeSessions:
+          type: integer
+        platforms:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              sessions:
+                type: integer
+              status:
+                type: string
+
+    # Metrics Schemas
+    SystemMetrics:
+      type: object
+      properties:
+        system:
+          type: object
+          properties:
+            cpu:
+              type: number
+              description: CPU usage percentage
+            memory:
+              type: number
+              description: Memory usage percentage
+            disk:
+              type: number
+              description: Disk usage percentage
+        services:
+          type: object
+          properties:
+            active:
+              type: integer
+            healthy:
+              type: integer
+            unhealthy:
+              type: integer
+        requests:
+          type: object
+          properties:
+            total:
+              type: integer
+            rate:
+              type: string
+            errors:
+              type: integer
+        timestamp:
+          type: string
+          format: date-time
+
+    CustomMetric:
+      type: object
+      required:
+        - name
+        - value
+      properties:
+        name:
+          type: string
+        value:
+          type: number
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    # Health Schemas
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy]
+        checks:
+          type: object
+          additionalProperties:
+            oneOf:
+              - type: boolean
+              - type: object
+                properties:
+                  status:
+                    type: string
+                  latency:
+                    type: number
+                  error:
+                    type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    DetailedStatus:
+      type: object
+      properties:
+        overall:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        components:
+          type: object
+          properties:
+            workersAI:
+              $ref: '#/components/schemas/ComponentStatus'
+            kv:
+              $ref: '#/components/schemas/ComponentStatus'
+            vectorize:
+              $ref: '#/components/schemas/ComponentStatus'
+            sessionSync:
+              $ref: '#/components/schemas/ComponentStatus'
+            notionSync:
+              $ref: '#/components/schemas/ComponentStatus'
+        metrics:
+          $ref: '#/components/schemas/SystemMetrics'
+
+    ComponentStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        latency:
+          type: number
+        uptime:
+          type: number
+        lastCheck:
+          type: string
+          format: date-time
+        errors:
+          type: array
+          items:
+            type: string
+
+    # Common Schemas
+    Pagination:
+      type: object
+      properties:
+        limit:
+          type: integer
+        offset:
+          type: integer
+        total:
+          type: integer
+        hasMore:
+          type: boolean
+
+    Error:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri
+          description: RFC 7807 problem type
+        title:
+          type: string
+          description: Human-readable summary
+        status:
+          type: integer
+          description: HTTP status code
+        detail:
+          type: string
+          description: Human-readable explanation
+        instance:
+          type: string
+          format: uri
+          description: URI reference for this specific occurrence
+        code:
+          type: string
+          description: ChittyOS-specific error code
+        context:
+          type: object
+          description: Additional error context
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            type: "https://chitty.cc/errors/bad-request"
+            title: "Bad Request"
+            status: 400
+            detail: "The request body contains invalid JSON"
+            code: "INVALID_JSON"
+
+    Unauthorized:
+      description: Unauthorized - invalid or missing authentication
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            type: "https://chitty.cc/errors/unauthorized"
+            title: "Unauthorized"
+            status: 401
+            detail: "Valid authentication credentials are required"
+            code: "AUTH_REQUIRED"
+
+    Forbidden:
+      description: Forbidden - insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            type: "https://chitty.cc/errors/forbidden"
+            title: "Forbidden"
+            status: 403
+            detail: "Insufficient permissions for this operation"
+            code: "INSUFFICIENT_PERMISSIONS"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            type: "https://chitty.cc/errors/not-found"
+            title: "Not Found"
+            status: 404
+            detail: "The requested resource was not found"
+            code: "RESOURCE_NOT_FOUND"
+
+    RateLimited:
+      description: Rate limit exceeded
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds to wait before retry
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+          description: Request limit per window
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+          description: Remaining requests in window
+        X-RateLimit-Reset:
+          schema:
+            type: integer
+          description: Time when limit resets (Unix timestamp)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            type: "https://chitty.cc/errors/rate-limited"
+            title: "Rate Limited"
+            status: 429
+            detail: "API rate limit exceeded"
+            code: "RATE_LIMIT_EXCEEDED"
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            type: "https://chitty.cc/errors/internal-error"
+            title: "Internal Server Error"
+            status: 500
+            detail: "An unexpected error occurred"
+            code: "INTERNAL_ERROR"
+
+  examples:
+    AutoRAGBasicQuery:
+      summary: Basic AutoRAG query
+      value:
+        query: "How do I set up OAuth authentication?"
+        model: "@cf/meta/llama-3.1-8b-instruct"
+        retrievalCount: 5
+
+    AutoRAGAdvancedQuery:
+      summary: Advanced AutoRAG query with session
+      value:
+        query: "Search for error logs related to authentication failures"
+        model: "@cf/meta/llama-3.1-8b-instruct"
+        retrievalCount: 10
+        threshold: 0.8
+        sessionId: "debug-session-456"
+
+    MCPServerRegistration:
+      summary: MCP server registration
+      value:
+        name: "ChittyOS Filesystem MCP"
+        description: "Access and search ChittyOS evidence files"
+        endpoint: "mcp://filesystem.chitty.cc"
+        capabilities: ["read_files", "search_files"]
+        tools:
+          - name: "list_evidence"
+            description: "List evidence files"
+            inputSchema:
+              type: "object"
+              properties:
+                path:
+                  type: "string"
+        redirectUris: ["http://localhost:3000/oauth/callback"]
+        allowedScopes: ["chittyos:read", "mcp:server"]

@@ -1,0 +1,76 @@
+name = "chittyos-dashboard"
+main = "src/workers-ai-autorag.js"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Workers AI binding
+[ai]
+binding = "AI"
+
+# Production environment configuration
+[env.production]
+workers_dev = false
+
+# Workers AI binding for production
+[env.production.ai]
+binding = "AI"
+
+# KV namespaces for session storage
+[[env.production.kv_namespaces]]
+binding = "CHITTY_SESSIONS"
+id = "0466322dd08c43d19d1d958b81c1f1f0"
+
+[[env.production.kv_namespaces]]
+binding = "CHITTY_CHECKPOINTS"
+id = "27bab609bdd645fb9f8e109f878b72d8"
+
+[[env.production.kv_namespaces]]
+binding = "CHITTY_EVIDENCE"
+id = "48e3927bc85c4e248b24c984a6ab5979"
+
+# D1 database for evidence ledger (disabled for now)
+# [[env.production.d1_databases]]
+# binding = "EVIDENCE_DB"
+# database_name = "chittyos-evidence"
+# database_id = "your-d1-database-id"
+
+# Vectorize for semantic search (disabled for now)
+# [[env.production.vectorize]]
+# binding = "CHITTY_VECTORS"
+# index_name = "chittyos-embeddings"
+
+# R2 bucket for large files (disabled for now)
+# [[env.production.r2_buckets]]
+# binding = "CHITTY_STORAGE"
+# bucket_name = "chittyos-evidence-files"
+
+# Environment variables (use wrangler secret put for sensitive values)
+[env.production.vars]
+ENVIRONMENT = "production"
+CORS_ORIGIN = "https://dashboard.chitty.cc"
+API_VERSION = "v1"
+WORKER_ID = "chittyos-autorag-prod"
+SESSION_REGISTRY_URL = "https://registry.chitty.cc"
+
+# Development environment
+[env.development]
+workers_dev = true
+
+[[env.development.kv_namespaces]]
+binding = "CHITTY_SESSIONS"
+id = "your-dev-sessions-kv-id"
+
+[[env.development.kv_namespaces]]
+binding = "CHITTY_CHECKPOINTS"
+id = "your-dev-checkpoints-kv-id"
+
+[env.development.vars]
+ENVIRONMENT = "development"
+CORS_ORIGIN = "*"
+
+# No build required for static worker
+
+# Custom domain routes
+[[env.production.routes]]
+pattern = "registry.chitty.cc/*"
+zone_name = "chitty.cc"

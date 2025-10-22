@@ -1,0 +1,37 @@
+{
+  "name": "chittysweep",
+  "version": "1.0.0",
+  "description": "ChittySweep - Intelligent Janitor Agent Group powered by Cloudflare Workers AI",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:staging": "wrangler deploy --env staging",
+    "deploy:production": "wrangler deploy --env production",
+    "tail": "wrangler tail",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "npm run test -- --watch",
+    "publish": "wrangler publish",
+    "setup:kv": "node scripts/setup-kv.js",
+    "setup:r2": "node scripts/setup-r2.js",
+    "migrate": "wrangler d1 migrations apply --remote",
+    "logs": "wrangler tail --format pretty"
+  },
+  "keywords": [
+    "chittysweep",
+    "janitor",
+    "cleanup",
+    "ai",
+    "agents",
+    "cloudflare",
+    "workers"
+  ],
+  "author": "ChittyOS",
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250110.0",
+    "jest": "^29.7.0",
+    "wrangler": "^4.44.0"
+  }
+}

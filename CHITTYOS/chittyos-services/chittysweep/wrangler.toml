@@ -1,0 +1,72 @@
+name = "chittysweep"
+main = "src/index.js"
+compatibility_date = "2025-01-21"
+account_id = "0bc21e3a5a9de1a4cc843be9c3e98121"
+
+# ChittySweep - Intelligent Janitor Agent Group
+# Multi-agent system for automated cleanup and optimization
+
+workers_dev = true
+
+# Routes
+routes = [
+  { pattern = "sweep.chitty.cc/*", zone_name = "chitty.cc" }
+]
+
+# Cloudflare AI binding for agent intelligence
+ai = { binding = "AI" }
+
+# KV for agent state and discoveries
+[[kv_namespaces]]
+binding = "SWEEP_STATE"
+id = "43a85a809daa426abd4228ceeca3ff1d"
+
+[[kv_namespaces]]
+binding = "SWEEP_DISCOVERIES"
+id = "ea8c3314fc3a49818e3f6d5754df91e0"
+
+[[kv_namespaces]]
+binding = "SWEEP_METRICS"
+id = "7eed6ba2c0c3422893dd4941a73eeac9"
+
+# Durable Objects for agent coordination
+[[durable_objects.bindings]]
+name = "AGENT_ORCHESTRATOR"
+class_name = "AgentOrchestrator"
+script_name = "chittysweep"
+
+[[durable_objects.bindings]]
+name = "AGENT_STATE"
+class_name = "AgentState"
+script_name = "chittysweep"
+
+# Agent Durable Object migrations
+[[migrations]]
+tag = "v1"
+new_classes = ["AgentOrchestrator", "AgentState"]
+
+# R2 for cleanup logs and reports
+[[r2_buckets]]
+binding = "SWEEP_LOGS"
+bucket_name = "chittysweep-logs"
+
+# Cron triggers for automated sweeps
+[triggers]
+crons = [
+  "0 2 * * *",    # Daily at 2 AM - full sweep
+  "0 */6 * * *",  # Every 6 hours - quick scan
+  "*/15 * * * *"  # Every 15 minutes - metric collection
+]
+
+# Environment variables
+[env.production]
+ENVIRONMENT = "production"
+LOG_LEVEL = "info"
+AGENT_TIMEOUT_MS = "30000"
+MAX_CONCURRENT_AGENTS = "5"
+
+[env.staging]
+ENVIRONMENT = "staging"
+LOG_LEVEL = "debug"
+AGENT_TIMEOUT_MS = "60000"
+MAX_CONCURRENT_AGENTS = "3"

@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChittyOS Interactive System Map</title>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .system-map-container {
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .glow {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+        }
+
+        .node {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .node:hover {
+            transform: scale(1.05);
+            filter: brightness(1.2);
+        }
+
+        .node.selected {
+            transform: scale(1.1);
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.8);
+        }
+
+        .connection-line {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #10b981, transparent);
+            transform-origin: left center;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        .data-flow {
+            stroke: #10b981;
+            stroke-width: 2;
+            fill: none;
+            stroke-dasharray: 8,4;
+            animation: flow 3s linear infinite;
+        }
+
+        .auth-flow {
+            stroke: #f59e0b;
+            stroke-width: 3;
+            fill: none;
+            stroke-dasharray: 12,6;
+            animation: auth-flow 2s linear infinite;
+        }
+
+        .security-flow {
+            stroke: #ef4444;
+            stroke-width: 2;
+            fill: none;
+            stroke-dasharray: 6,3;
+            animation: security-flow 1.5s linear infinite;
+        }
+
+        @keyframes flow {
+            0% { stroke-dashoffset: 0; }
+            100% { stroke-dashoffset: 12; }
+        }
+
+        @keyframes auth-flow {
+            0% { stroke-dashoffset: 0; }
+            100% { stroke-dashoffset: 18; }
+        }
+
+        @keyframes security-flow {
+            0% { stroke-dashoffset: 0; }
+            100% { stroke-dashoffset: 9; }
+        }
+
+        .drill-down-panel {
+            position: fixed;
+            top: 0;
+            right: -500px;
+            width: 500px;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(20px);
+            transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+            overflow-y: auto;
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .drill-down-panel.open {
+            right: 0;
+        }
+
+        .layer-toggle {
+            transition: all 0.3s ease;
+        }
+
+        .layer-toggle.active {
+            background: rgba(59, 130, 246, 0.3);
+            border-color: #3b82f6;
+        }
+
+        .mini-map {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 200px;
+            height: 150px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .zoom-controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .metric-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #10b981;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .search-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .search-overlay.show {
+            display: flex;
+        }
+    </style>
+</head>
+<body class="system-map-container">
+    <!-- Header with Controls -->
+    <div class="fixed top-0 left-0 right-0 z-50 p-4 flex justify-between items-center">
+        <div class="flex items-center space-x-4">
+            <h1 class="text-2xl font-bold text-white">ChittyOS Interactive System Map</h1>
+            <div class="flex space-x-2">
+                <button id="search-btn" class="glass px-3 py-2 text-white rounded-lg hover:bg-white/20 flex items-center space-x-2">
+                    <i data-lucide="search" class="w-4 h-4"></i>
+                    <span>Search</span>
+                </button>
+                <button id="flows-btn" class="glass px-3 py-2 text-white rounded-lg hover:bg-white/20 flex items-center space-x-2">
+                    <i data-lucide="git-branch" class="w-4 h-4"></i>
+                    <span>Show Flows</span>
+                </button>
+                <button id="reset-btn" class="glass px-3 py-2 text-white rounded-lg hover:bg-white/20 flex items-center space-x-2">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    <span>Reset</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="flex space-x-2">
+            <button class="layer-toggle glass px-3 py-2 text-white rounded-lg" data-layer="ui">UI</button>
+            <button class="layer-toggle glass px-3 py-2 text-white rounded-lg" data-layer="service">Services</button>
+            <button class="layer-toggle glass px-3 py-2 text-white rounded-lg" data-layer="auth">Auth</button>
+            <button class="layer-toggle glass px-3 py-2 text-white rounded-lg" data-layer="data">Data</button>
+            <button class="layer-toggle glass px-3 py-2 text-white rounded-lg" data-layer="security">Security</button>
+        </div>
+    </div>
+
+    <!-- Main System Map -->
+    <div class="relative w-full h-screen pt-20 overflow-hidden">
+        <div id="map-container" class="relative w-full h-full" style="transform: scale(1) translate(0px, 0px);">
+            <svg id="system-svg" class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 1600 1200">
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#10b981" />
+                    </marker>
+                    <marker id="auth-arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#f59e0b" />
+                    </marker>
+                    <marker id="security-arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#ef4444" />
+                    </marker>
+                    <filter id="glow">
+                        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                        <feMerge>
+                            <feMergeNode in="coloredBlur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+                </defs>
+
+                <!-- Background Grid -->
+                <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+                    <path d="M 50 0 L 0 0 0 50" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+                </pattern>
+                <rect width="100%" height="100%" fill="url(#grid)" />
+
+                <!-- Data Flow Lines -->
+                <g id="flow-lines" style="display: none;">
+                    <!-- UI to Services -->
+                    <path d="M 200 200 Q 400 250 600 300" class="data-flow" marker-end="url(#arrowhead)"/>
+                    <path d="M 450 200 Q 550 250 650 300" class="data-flow" marker-end="url(#arrowhead)"/>
+
+                    <!-- Services to Auth -->
+                    <path d="M 600 400 Q 700 450 800 500" class="auth-flow" marker-end="url(#auth-arrow)"/>
+                    <path d="M 900 400 Q 1000 450 1100 500" class="auth-flow" marker-end="url(#auth-arrow)"/>
+
+                    <!-- Security Flows -->
+                    <path d="M 200 600 Q 400 550 600 500" class="security-flow" marker-end="url(#security-arrow)"/>
+                    <path d="M 1000 600 Q 1200 550 1400 500" class="security-flow" marker-end="url(#security-arrow)"/>
+                </g>
+            </svg>
+
+            <!-- UI Layer Nodes -->
+            <div class="absolute" style="top: 150px; left: 100px;">
+                <div class="node glass rounded-xl p-6 w-64 ui-layer" data-component="dashboard" data-layer="ui">
+                    <div class="flex items-center space-x-3 mb-3">
+                        <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
+                            <i data-lucide="layout-dashboard" class="w-6 h-6 text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-white font-semibold">ChittyOS Dashboard</h3>
+                            <p class="text-gray-400 text-sm">Main Command Center</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-400">
+                        <span>Status: Active</span>
+                        <span class="metric-badge">99%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="absolute" style="top: 150px; left: 400px;">
+                <div class="node glass rounded-xl p-6 w-64 ui-layer" data-component="registry-dashboard" data-layer="ui">
+                    <div class="flex items-center space-x-3 mb-3">
+                        <div class="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center">
+                            <i data-lucide="database" class="w-6 h-6 text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-white font-semibold">Service Registry</h3>
+                            <p class="text-gray-400 text-sm">MCP Integration Hub</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-400">
+                        <span>Services: 47</span>
+                        <span class="metric-badge">12</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Service Layer Nodes -->
+            <div class="absolute" style="top: 350px; left: 50px;">
+                <div class="node glass rounded-xl p-6 w-64 service-layer" data-component="workers-ai" data-layer="service">
+                    <div class="flex items-center space-x-3 mb-3">
+                        <div class="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
+                            <i data-lucide="brain" class="w-6 h-6 text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-white font-semibold">Workers AI AutoRAG</h3>
+                            <p class="text-gray-400 text-sm">Core AI Service</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-400">
+                        <span>Queries: 1.2k/hr</span>
+                        <span class="metric-badge">AI</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="absolute" style="top: 350px; left: 350px;">
+                <div class="node glass rounded-xl p-6 w-64 service-layer" data-component="session-sync" data-layer="service">
+                    <div class="flex items-center space-x-3 mb-3">
+                        <div class="w-12 h-12 bg-cyan-500 rounded-lg flex items-center justify-center">
+                            <i data-lucide="refresh-cw" class="w-6 h-6 text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-white font-semibold">Session Sync</h3>
+                            <p class="text-gray-400 text-sm">Session Management</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-400">
+                        <span>Sessions: 84 active</span>
+                        <span class="metric-badge">84</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Auth Layer Nodes -->
+            <div class="absolute" style="top: 550px; left: 200px;">
+                <div class="node glass rounded-xl p-6 w-80 auth-layer" data-component="oauth-provider" data-layer="auth">
+                    <div class="flex items-center space-x-3 mb-3">
+                        <div class="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center">
+                            <i data-lucide="shield-check" class="w-6 h-6 text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-white font-semibold">OAuth 2.0 Provider</h3>
+                            <p class="text-gray-400 text-sm">Authorization Server</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 text-xs text-gray-400">
+                        <div>Tokens: 156</div>
+                        <div>Clients: 23</div>
+                        <div>Success: 99.2%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Layer Nodes -->
+            <div class="absolute" style="top: 750px; left: 100px;">
+                <div class="node glass rounded-xl p-6 w-64 security-layer" data-component="security-monitor" data-layer="security">
+                    <div class="flex items-center space-x-3 mb-3">
+                        <div class="w-12 h-12 bg-red-500 rounded-lg flex items-center justify-center">
+                            <i data-lucide="shield-alert" class="w-6 h-6 text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-white font-semibold">Security Monitor</h3>
+                            <p class="text-gray-400 text-sm">Threat Detection</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-400">
+                        <span>Alerts: 0 active</span>
+                        <span class="metric-badge">✓</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Layer Nodes -->
+            <div class="absolute" style="top: 750px; left: 400px;">
+                <div class="node glass rounded-xl p-6 w-64 data-layer" data-component="kv-storage" data-layer="data">
+                    <div class="flex items-center space-x-3 mb-3">
+                        <div class="w-12 h-12 bg-indigo-500 rounded-lg flex items-center justify-center">
+                            <i data-lucide="hard-drive" class="w-6 h-6 text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-white font-semibold">KV Storage</h3>
+                            <p class="text-gray-400 text-sm">Distributed Storage</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-400">
+                        <span>Keys: 2.1k</span>
+                        <span class="metric-badge">KV</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- External Services -->
+            <div class="absolute" style="top: 350px; left: 900px;">
+                <div class="node glass rounded-xl p-6 w-64 service-layer" data-component="mcp-servers" data-layer="service">
+                    <div class="flex items-center space-x-3 mb-3">
+                        <div class="w-12 h-12 bg-violet-500 rounded-lg flex items-center justify-center">
+                            <i data-lucide="plug" class="w-6 h-6 text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-white font-semibold">MCP Servers</h3>
+                            <p class="text-gray-400 text-sm">External Integrations</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-400">
+                        <span>Connected: 8</span>
+                        <span class="metric-badge">8</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="absolute" style="top: 750px; left: 900px;">
+                <div class="node glass rounded-xl p-6 w-64 data-layer" data-component="notion-db" data-layer="data">
+                    <div class="flex items-center space-x-3 mb-3">
+                        <div class="w-12 h-12 bg-gray-500 rounded-lg flex items-center justify-center">
+                            <i data-lucide="book-open" class="w-6 h-6 text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-white font-semibold">Notion Database</h3>
+                            <p class="text-gray-400 text-sm">External Storage</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-400">
+                        <span>Records: 428</span>
+                        <span class="metric-badge">⬆</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mini Map -->
+    <div class="mini-map">
+        <div class="p-2 text-white text-xs font-bold border-b border-gray-600">System Overview</div>
+        <div id="mini-map-content" class="p-2 text-xs text-gray-400 space-y-1">
+            <div class="flex justify-between">
+                <span>Total Nodes:</span>
+                <span class="text-green-400">9</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Active Services:</span>
+                <span class="text-blue-400">7</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Security Status:</span>
+                <span class="text-green-400">Normal</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Data Flows:</span>
+                <span class="text-yellow-400">12</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Zoom Controls -->
+    <div class="zoom-controls">
+        <button id="zoom-in" class="glass w-12 h-12 rounded-lg flex items-center justify-center text-white hover:bg-white/20">
+            <i data-lucide="zoom-in" class="w-5 h-5"></i>
+        </button>
+        <button id="zoom-out" class="glass w-12 h-12 rounded-lg flex items-center justify-center text-white hover:bg-white/20">
+            <i data-lucide="zoom-out" class="w-5 h-5"></i>
+        </button>
+        <button id="center-map" class="glass w-12 h-12 rounded-lg flex items-center justify-center text-white hover:bg-white/20">
+            <i data-lucide="move" class="w-5 h-5"></i>
+        </button>
+    </div>
+
+    <!-- Search Overlay -->
+    <div id="search-overlay" class="search-overlay">
+        <div class="glass rounded-xl p-8 w-96">
+            <h2 class="text-2xl font-bold text-white mb-4">Search System Components</h2>
+            <input id="search-input" type="text" placeholder="Search nodes, services, flows..."
+                   class="w-full p-3 rounded-lg bg-white/10 text-white placeholder-gray-400 border border-white/20 focus:border-blue-500 focus:outline-none">
+            <div id="search-results" class="mt-4 space-y-2 max-h-64 overflow-y-auto"></div>
+            <div class="flex justify-end space-x-2 mt-4">
+                <button id="search-cancel" class="px-4 py-2 text-gray-400 hover:text-white">Cancel</button>
+                <button id="search-confirm" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Search</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drill-down Panel -->
+    <div id="drill-down-panel" class="drill-down-panel">
+        <div class="p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 id="drill-title" class="text-2xl font-bold text-white"></h2>
+                <button id="close-drill" class="text-white hover:text-gray-300">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div id="drill-content" class="space-y-6">
+                <!-- Dynamic content will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // System data
+        const systemData = {
+            dashboard: {
+                title: 'ChittyOS Dashboard',
+                type: 'UI Component',
+                status: 'Active',
+                metrics: { uptime: '99.2%', users: 142, requests: '1.2k/hr' },
+                endpoints: ['/api/status', '/api/evidence', '/api/activity'],
+                dependencies: ['data-service', 'workers-ai'],
+                description: 'Main command center providing real-time system monitoring and control interfaces.',
+                techStack: ['HTML5', 'Tailwind CSS', 'Chart.js', 'Vanilla JS'],
+                flows: ['Data Pipeline', 'Authentication Flow'],
+                security: ['HTTPS', 'CSP Headers', 'CORS Protection']
+            },
+            'workers-ai': {
+                title: 'Workers AI AutoRAG',
+                type: 'Core Service',
+                status: 'Active',
+                metrics: { queries: '1.2k/hr', latency: '2.3s', accuracy: '94%' },
+                endpoints: ['/api/autorag', '/api/registry', '/oauth/*'],
+                dependencies: ['vectorize-db', 'kv-storage'],
+                description: 'Central AI service handling AutoRAG queries, service registry, and OAuth authorization.',
+                techStack: ['Cloudflare Workers', 'Workers AI', 'Vectorize', 'KV Storage'],
+                flows: ['AutoRAG Pipeline', 'OAuth Flow', 'Service Registration'],
+                security: ['JWT Tokens', 'Rate Limiting', 'Input Validation']
+            },
+            'oauth-provider': {
+                title: 'OAuth 2.0 Provider',
+                type: 'Authorization Service',
+                status: 'Active',
+                metrics: { tokens: 156, clients: 23, success: '99.2%' },
+                endpoints: ['/oauth/authorize', '/oauth/token', '/oauth/introspect'],
+                dependencies: ['kv-storage'],
+                description: 'OAuth 2.0 authorization server implementing Cloudflare MCP patterns.',
+                techStack: ['OAuth 2.0', 'JWT', 'PKCE', 'Cloudflare KV'],
+                flows: ['Authorization Code Flow', 'Token Validation', 'Client Registration'],
+                security: ['PKCE', 'State Parameter', 'Secure Storage', 'Token Rotation']
+            }
+        };
+
+        // UI State
+        let currentZoom = 1;
+        let currentTranslate = { x: 0, y: 0 };
+        let selectedComponent = null;
+        let flowsVisible = false;
+        let activeLayers = new Set(['ui', 'service', 'auth', 'data', 'security']);
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            lucide.createIcons();
+            setupEventListeners();
+            updateLayerVisibility();
+        });
+
+        function setupEventListeners() {
+            // Node selection
+            document.querySelectorAll('.node').forEach(node => {
+                node.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    selectComponent(this.dataset.component);
+                });
+            });
+
+            // Layer toggles
+            document.querySelectorAll('.layer-toggle').forEach(toggle => {
+                toggle.addEventListener('click', function() {
+                    toggleLayer(this.dataset.layer);
+                });
+            });
+
+            // Controls
+            document.getElementById('search-btn').addEventListener('click', showSearch);
+            document.getElementById('flows-btn').addEventListener('click', toggleFlows);
+            document.getElementById('reset-btn').addEventListener('click', resetView);
+            document.getElementById('close-drill').addEventListener('click', closeDrillDown);
+
+            // Zoom controls
+            document.getElementById('zoom-in').addEventListener('click', () => zoom(1.2));
+            document.getElementById('zoom-out').addEventListener('click', () => zoom(0.8));
+            document.getElementById('center-map').addEventListener('click', centerMap);
+
+            // Search
+            document.getElementById('search-cancel').addEventListener('click', hideSearch);
+            document.getElementById('search-input').addEventListener('input', handleSearch);
+
+            // Click outside to deselect
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.node') && !e.target.closest('.drill-down-panel')) {
+                    deselectComponent();
+                }
+            });
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeDrillDown();
+                    hideSearch();
+                    deselectComponent();
+                } else if (e.key === 'f' && e.ctrlKey) {
+                    e.preventDefault();
+                    showSearch();
+                } else if (e.key === 'r' && e.ctrlKey) {
+                    e.preventDefault();
+                    resetView();
+                }
+            });
+        }
+
+        function selectComponent(componentId) {
+            deselectComponent();
+            selectedComponent = componentId;
+
+            const node = document.querySelector(`[data-component="${componentId}"]`);
+            if (node) {
+                node.classList.add('selected');
+                showDrillDown(componentId);
+            }
+        }
+
+        function deselectComponent() {
+            if (selectedComponent) {
+                const node = document.querySelector(`[data-component="${selectedComponent}"]`);
+                if (node) {
+                    node.classList.remove('selected');
+                }
+                selectedComponent = null;
+                closeDrillDown();
+            }
+        }
+
+        function showDrillDown(componentId) {
+            const data = systemData[componentId];
+            if (!data) return;
+
+            document.getElementById('drill-title').textContent = data.title;
+
+            const content = document.getElementById('drill-content');
+            content.innerHTML = `
+                <div class="space-y-4">
+                    <div class="glass rounded-lg p-4">
+                        <h3 class="text-lg font-semibold text-white mb-2">Overview</h3>
+                        <p class="text-gray-300 text-sm">${data.description}</p>
+                        <div class="mt-3 flex items-center space-x-4 text-sm">
+                            <span class="px-2 py-1 bg-blue-500/20 text-blue-300 rounded">${data.type}</span>
+                            <span class="px-2 py-1 bg-green-500/20 text-green-300 rounded">${data.status}</span>
+                        </div>
+                    </div>
+
+                    <div class="glass rounded-lg p-4">
+                        <h3 class="text-lg font-semibold text-white mb-3">Metrics</h3>
+                        <div class="grid grid-cols-2 gap-3">
+                            ${Object.entries(data.metrics).map(([key, value]) => `
+                                <div class="text-center">
+                                    <div class="text-xl font-bold text-blue-400">${value}</div>
+                                    <div class="text-xs text-gray-400 capitalize">${key.replace(/([A-Z])/g, ' $1')}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="glass rounded-lg p-4">
+                        <h3 class="text-lg font-semibold text-white mb-3">API Endpoints</h3>
+                        <div class="space-y-2">
+                            ${data.endpoints.map(endpoint => `
+                                <div class="flex items-center space-x-2 text-sm">
+                                    <span class="w-2 h-2 bg-green-400 rounded-full"></span>
+                                    <code class="text-green-300">${endpoint}</code>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="glass rounded-lg p-4">
+                        <h3 class="text-lg font-semibold text-white mb-3">Dependencies</h3>
+                        <div class="flex flex-wrap gap-2">
+                            ${data.dependencies.map(dep => `
+                                <span class="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-sm">${dep}</span>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="glass rounded-lg p-4">
+                        <h3 class="text-lg font-semibold text-white mb-3">Technology Stack</h3>
+                        <div class="flex flex-wrap gap-2">
+                            ${data.techStack.map(tech => `
+                                <span class="px-3 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-sm">${tech}</span>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="glass rounded-lg p-4">
+                        <h3 class="text-lg font-semibold text-white mb-3">Data Flows</h3>
+                        <div class="space-y-2">
+                            ${data.flows.map(flow => `
+                                <div class="flex items-center space-x-2 text-sm">
+                                    <i data-lucide="arrow-right" class="w-4 h-4 text-yellow-400"></i>
+                                    <span class="text-gray-300">${flow}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="glass rounded-lg p-4">
+                        <h3 class="text-lg font-semibold text-white mb-3">Security Features</h3>
+                        <div class="space-y-2">
+                            ${data.security.map(security => `
+                                <div class="flex items-center space-x-2 text-sm">
+                                    <i data-lucide="shield-check" class="w-4 h-4 text-green-400"></i>
+                                    <span class="text-gray-300">${security}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            lucide.createIcons();
+            document.getElementById('drill-down-panel').classList.add('open');
+        }
+
+        function closeDrillDown() {
+            document.getElementById('drill-down-panel').classList.remove('open');
+        }
+
+        function toggleLayer(layer) {
+            const toggle = document.querySelector(`[data-layer="${layer}"]`);
+
+            if (activeLayers.has(layer)) {
+                activeLayers.delete(layer);
+                toggle.classList.remove('active');
+            } else {
+                activeLayers.add(layer);
+                toggle.classList.add('active');
+            }
+
+            updateLayerVisibility();
+        }
+
+        function updateLayerVisibility() {
+            document.querySelectorAll('.layer-toggle').forEach(toggle => {
+                const layer = toggle.dataset.layer;
+                if (activeLayers.has(layer)) {
+                    toggle.classList.add('active');
+                } else {
+                    toggle.classList.remove('active');
+                }
+            });
+
+            document.querySelectorAll('.node').forEach(node => {
+                const nodeLayer = node.dataset.layer;
+                if (activeLayers.has(nodeLayer)) {
+                    node.style.display = 'block';
+                    node.style.opacity = '1';
+                } else {
+                    node.style.opacity = '0.3';
+                }
+            });
+        }
+
+        function toggleFlows() {
+            flowsVisible = !flowsVisible;
+            const flowLines = document.getElementById('flow-lines');
+            const button = document.getElementById('flows-btn');
+
+            if (flowsVisible) {
+                flowLines.style.display = 'block';
+                button.classList.add('active');
+            } else {
+                flowLines.style.display = 'none';
+                button.classList.remove('active');
+            }
+        }
+
+        function zoom(factor) {
+            currentZoom *= factor;
+            currentZoom = Math.max(0.5, Math.min(3, currentZoom));
+            updateTransform();
+        }
+
+        function centerMap() {
+            currentTranslate = { x: 0, y: 0 };
+            currentZoom = 1;
+            updateTransform();
+        }
+
+        function updateTransform() {
+            const container = document.getElementById('map-container');
+            container.style.transform = `scale(${currentZoom}) translate(${currentTranslate.x}px, ${currentTranslate.y}px)`;
+        }
+
+        function resetView() {
+            deselectComponent();
+            closeDrillDown();
+            centerMap();
+            activeLayers = new Set(['ui', 'service', 'auth', 'data', 'security']);
+            updateLayerVisibility();
+
+            if (flowsVisible) {
+                toggleFlows();
+            }
+        }
+
+        function showSearch() {
+            document.getElementById('search-overlay').classList.add('show');
+            document.getElementById('search-input').focus();
+        }
+
+        function hideSearch() {
+            document.getElementById('search-overlay').classList.remove('show');
+            document.getElementById('search-input').value = '';
+            document.getElementById('search-results').innerHTML = '';
+        }
+
+        function handleSearch() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const results = document.getElementById('search-results');
+
+            if (query.length < 2) {
+                results.innerHTML = '';
+                return;
+            }
+
+            const matches = Object.entries(systemData).filter(([id, data]) =>
+                data.title.toLowerCase().includes(query) ||
+                data.description.toLowerCase().includes(query) ||
+                data.techStack.some(tech => tech.toLowerCase().includes(query))
+            );
+
+            results.innerHTML = matches.map(([id, data]) => `
+                <div class="p-3 bg-white/10 rounded-lg cursor-pointer hover:bg-white/20" onclick="selectFromSearch('${id}')">
+                    <div class="font-semibold text-white">${data.title}</div>
+                    <div class="text-sm text-gray-400">${data.type}</div>
+                </div>
+            `).join('') || '<div class="text-gray-400 text-center py-4">No results found</div>';
+        }
+
+        function selectFromSearch(componentId) {
+            hideSearch();
+            selectComponent(componentId);
+
+            // Center on selected component
+            const node = document.querySelector(`[data-component="${componentId}"]`);
+            if (node) {
+                node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        // Auto-update metrics simulation
+        setInterval(() => {
+            document.querySelectorAll('.metric-badge').forEach(badge => {
+                if (Math.random() > 0.9) {
+                    badge.style.animation = 'pulse 0.5s ease-in-out';
+                    setTimeout(() => badge.style.animation = '', 500);
+                }
+            });
+        }, 5000);
+    </script>
+</body>
+</html>

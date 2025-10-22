@@ -1,0 +1,33 @@
+Group Email,Group Name,Description,Owners,Type
+genie@nevershitty.com,Genie - Never Shitty,Main communication channel,nick@aribia.llc;sharon@aribia.llc,Collaborative Inbox
+loft@byaribia.com,Lakeside Loft,Lakeside Loft communications,nick@aribia.llc,Collaborative Inbox
+mgmt@apt-arlene.com,APT ARLENE Management,APT ARLENE entity management,nick@aribia.llc;sharon@aribia.llc,Collaborative Inbox
+mgmt@aribia.llc,ARIBIA Management,Main ARIBIA management,nick@aribia.llc;sharon@aribia.llc,Collaborative Inbox
+mgmt@byaribia.com,By ARIBIA Management,By ARIBIA brand management,nick@aribia.llc,Collaborative Inbox
+mgmt@chicagofurnishedcondos.com,CFC Management,Chicago Furnished Condos management,nick@aribia.llc,Collaborative Inbox
+mgmt@chittyservices.com,Chitty Services Management,Chitty Services entity,nick@aribia.llc,Collaborative Inbox
+mgmt@itcanbellc.com,IT CAN BE LLC Management,IT CAN BE LLC entity,nick@aribia.llc;sharon@aribia.llc,Collaborative Inbox
+mgmt@jeanarlene.com,Jean Arlene Venturing Management,JAV LLC management,nick@aribia.llc;sharon@aribia.llc,Collaborative Inbox
+addison@aribia.llc,Lakeside Loft Addison,Addison property communications,nick@aribia.llc,Collaborative Inbox
+legal@itcanbellc.com,Legal - IT CAN BE LLC,Legal communications,nick@aribia.llc;sharon@aribia.llc,Collaborative Inbox
+mirror@cozy-castle.com,Mirror by Lululemon,Mirror fitness communications,nick@aribia.llc,Collaborative Inbox
+no-reply@aribia.llc,No Reply,Automated no-reply address,nick@aribia.llc,Announcement Only
+pay@cozycastlechicago.com,Payments - Cozy Castle,Payment processing Cozy Castle,nick@aribia.llc,Collaborative Inbox
+pay@byaribia.com,Payments - By ARIBIA,Payment processing main,nick@aribia.llc,Collaborative Inbox
+sharonexpenses@aribia.llc,Sharon Expenses,Sharon expense tracking,sharon@aribia.llc,Collaborative Inbox
+mgmt@unclesteve.org,Uncle Steve LLC,Uncle Steve LLC management,nick@aribia.llc,Collaborative Inbox
+web@nevershitty.com,Web Communications,Website inquiries,nick@aribia.llc,Collaborative Inbox
+stay@villavistachicago.com,Villa Vista Stay,Villa Vista bookings,nick@aribia.llc,Collaborative Inbox
+city@byaribia.com,City Studio,City Studio communications,nick@aribia.llc,Collaborative Inbox
+all-inclusive@chicagofurnishedcondos.com,CFC All Inclusive,All inclusive stay inquiries,nick@aribia.llc,Collaborative Inbox
+stay@cozycastlechicago.com,Cozy Castle Stay,Cozy Castle bookings,nick@aribia.llc,Collaborative Inbox
+condos@byaribia.com,CFC by ARIBIA,Condos general inquiries,nick@aribia.llc,Collaborative Inbox
+chico@chicagofurnishedcondos.com,Chico AI Assistant,AI assistant communications,nick@aribia.llc,Collaborative Inbox
+allcompany@aribia.llc,All Company,Company-wide communications,nick@aribia.llc;sharon@aribia.llc,Announcement
+all@aribia.llc,All ARIBIA,All ARIBIA communications,nick@aribia.llc;sharon@aribia.llc,Collaborative Inbox
+arlenegroup@apt-arlene.com,APT ARLENE Group,APT ARLENE team group,nick@aribia.llc;sharon@aribia.llc,Collaborative Inbox
+llcgroup@aribia.llc,ARIBIA LLC Group,ARIBIA LLC entity group,nick@aribia.llc;sharon@aribia.llc,Collaborative Inbox
+mgmtgroup@aribia-mgmt.com,ARIBIA MGMT Group,Management team group,nick@aribia.llc;sharon@aribia.llc,Collaborative Inbox
+chittygroup@chittyservices.com,CHITTY SERVICES Group,Chitty Services team,nick@aribia.llc,Collaborative Inbox
+citygroup@chicity-studio.com,CITY STUDIO Group,City Studio team,nick@aribia.llc,Collaborative Inbox
+itcanbellc@aribia.llc,IT CAN BE LLC,IT CAN BE LLC main group,nick@aribia.llc;sharon@aribia.llc,Collaborative Inbox

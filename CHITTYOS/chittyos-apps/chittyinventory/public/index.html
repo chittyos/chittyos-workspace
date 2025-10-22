@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChittyInventory - Property Management System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .nav-links a:hover {
+            background-color: rgba(255,255,255,0.2);
+        }
+
+        .main-content {
+            padding: 2rem 0;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 3rem 0;
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 2rem;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .auth-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin: 2rem 0;
+        }
+
+        .auth-forms {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .dashboard {
+            display: none;
+            padding: 2rem 0;
+        }
+
+        .dashboard-nav {
+            background: white;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .dashboard-nav ul {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .dashboard-nav a {
+            color: #667eea;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .dashboard-nav a:hover,
+        .dashboard-nav a.active {
+            background-color: #667eea;
+            color: white;
+        }
+
+        .dashboard-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            min-height: 400px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 1rem 0;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background-color: #f8f9ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background-color: #e7f3ff;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: 10px;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .close {
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 5px;
+            margin: 1rem 0;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .auth-forms {
+                grid-template-columns: 1fr;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+            }
+
+            .hero h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <nav class="nav container">
+            <div class="logo">ChittyInventory</div>
+            <ul class="nav-links">
+                <li><a href="#" onclick="showSection('home')">Home</a></li>
+                <li><a href="#" onclick="showSection('features')">Features</a></li>
+                <li><a href="#" onclick="showSection('auth')" id="auth-link">Login</a></li>
+                <li><a href="#" onclick="logout()" id="logout-link" style="display: none;">Logout</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="main-content container">
+        <!-- Home Section -->
+        <section id="home-section" class="hero">
+            <h1>Complete Property Inventory Management</h1>
+            <p>Streamline your property management with AI-powered inventory tracking, receipt processing, and tenant condition reporting.</p>
+            <div class="cta-buttons">
+                <a href="#" class="btn btn-primary" onclick="showSection('auth')">Get Started</a>
+                <a href="#" class="btn btn-secondary" onclick="showSection('features')">Learn More</a>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features-section" style="display: none;">
+            <div class="features">
+                <div class="feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3>Mobile-First Design</h3>
+                    <p>Access your inventory from anywhere with our responsive, mobile-optimized interface. Perfect for on-the-go property management.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <h3>AI-Powered Processing</h3>
+                    <p>Automatically extract items from receipts and photos using advanced OCR and image recognition technology.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📋</div>
+                    <h3>Tenant Condition Reports</h3>
+                    <p>Generate professional move-in/move-out condition reports with photo documentation and digital signatures.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🔍</div>
+                    <h3>QR Code Tracking</h3>
+                    <p>Label and track items with auto-generated QR codes. Quickly access item details by scanning labels.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Compliance Reporting</h3>
+                    <p>Maintain legal compliance with automated reporting and documentation for security deposits and repairs.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🔗</div>
+                    <h3>ChittyID Integration</h3>
+                    <p>Secure, blockchain-anchored identity management for all items, locations, and transactions.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Authentication Section -->
+        <section id="auth-section" class="auth-section" style="display: none;">
+            <h2>Access Your Inventory</h2>
+            <div class="auth-forms">
+                <div id="login-form">
+                    <h3>Login</h3>
+                    <form onsubmit="login(event)">
+                        <div class="form-group">
+                            <label for="login-username">Username or Email</label>
+                            <input type="text" id="login-username" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="login-password">Password</label>
+                            <input type="password" id="login-password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Login</button>
+                    </form>
+                </div>
+
+                <div id="register-form">
+                    <h3>Create Account</h3>
+                    <form onsubmit="register(event)">
+                        <div class="form-group">
+                            <label for="register-username">Username</label>
+                            <input type="text" id="register-username" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="register-email">Email</label>
+                            <input type="email" id="register-email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="register-firstname">First Name</label>
+                            <input type="text" id="register-firstname" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="register-lastname">Last Name</label>
+                            <input type="text" id="register-lastname" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="register-password">Password</label>
+                            <input type="password" id="register-password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Create Account</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dashboard Section -->
+        <section id="dashboard-section" class="dashboard">
+            <nav class="dashboard-nav">
+                <ul>
+                    <li><a href="#" onclick="showDashboard('overview')" class="dashboard-link active">Overview</a></li>
+                    <li><a href="#" onclick="showDashboard('inventory')" class="dashboard-link">Inventory</a></li>
+                    <li><a href="#" onclick="showDashboard('upload')" class="dashboard-link">Upload</a></li>
+                    <li><a href="#" onclick="showDashboard('inspections')" class="dashboard-link">Inspections</a></li>
+                    <li><a href="#" onclick="showDashboard('reports')" class="dashboard-link">Reports</a></li>
+                </ul>
+            </nav>
+
+            <div class="dashboard-content">
+                <!-- Overview -->
+                <div id="overview-content" class="dashboard-tab">
+                    <h2>Dashboard Overview</h2>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number" id="total-items">0</div>
+                            <div>Total Items</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="total-locations">0</div>
+                            <div>Locations</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="items-for-sale">0</div>
+                            <div>For Sale</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="total-value">$0</div>
+                            <div>Total Value</div>
+                        </div>
+                    </div>
+                    <div id="recent-activity">
+                        <h3>Recent Activity</h3>
+                        <p>Loading recent activities...</p>
+                    </div>
+                </div>
+
+                <!-- Inventory -->
+                <div id="inventory-content" class="dashboard-tab" style="display: none;">
+                    <h2>Inventory Management</h2>
+                    <div style="margin-bottom: 1rem;">
+                        <input type="text" id="search-items" placeholder="Search items..." style="padding: 10px; width: 300px; margin-right: 1rem;">
+                        <button class="btn btn-primary" onclick="searchItems()">Search</button>
+                        <button class="btn btn-secondary" onclick="showModal('add-item-modal')">Add Item</button>
+                    </div>
+                    <div id="inventory-list">
+                        <p>Loading inventory...</p>
+                    </div>
+                </div>
+
+                <!-- Upload -->
+                <div id="upload-content" class="dashboard-tab" style="display: none;">
+                    <h2>Upload & Process</h2>
+
+                    <div style="margin-bottom: 2rem;">
+                        <h3>Receipt Processing</h3>
+                        <div class="upload-area" onclick="document.getElementById('receipt-file').click()">
+                            <p>📄 Click to upload receipt or drag & drop</p>
+                            <p style="font-size: 0.9rem; color: #666;">Supports PDF, JPG, PNG files</p>
+                        </div>
+                        <input type="file" id="receipt-file" class="file-input" accept=".pdf,.jpg,.jpeg,.png" onchange="processReceipt(this.files[0])">
+                    </div>
+
+                    <div>
+                        <h3>Image Processing</h3>
+                        <div class="upload-area" onclick="document.getElementById('image-file').click()">
+                            <p>📷 Click to upload image or drag & drop</p>
+                            <p style="font-size: 0.9rem; color: #666;">Supports JPG, PNG, GIF files</p>
+                        </div>
+                        <input type="file" id="image-file" class="file-input" accept=".jpg,.jpeg,.png,.gif" onchange="processImage(this.files[0])">
+                    </div>
+
+                    <div id="processing-results" style="margin-top: 2rem;">
+                        <!-- Processing results will appear here -->
+                    </div>
+                </div>
+
+                <!-- Inspections -->
+                <div id="inspections-content" class="dashboard-tab" style="display: none;">
+                    <h2>Condition Inspections</h2>
+                    <div style="margin-bottom: 1rem;">
+                        <button class="btn btn-primary" onclick="showModal('create-inspection-modal')">Create Inspection</button>
+                        <button class="btn btn-secondary" onclick="loadInspections()">Refresh</button>
+                    </div>
+                    <div id="inspections-list">
+                        <p>Loading inspections...</p>
+                    </div>
+                </div>
+
+                <!-- Reports -->
+                <div id="reports-content" class="dashboard-tab" style="display: none;">
+                    <h2>Reports & Analytics</h2>
+                    <div style="margin-bottom: 1rem;">
+                        <button class="btn btn-primary" onclick="generateInventoryReport()">Inventory Report</button>
+                        <button class="btn btn-secondary" onclick="generateConditionReport()">Condition Report</button>
+                    </div>
+                    <div id="reports-list">
+                        <p>No reports generated yet.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modals -->
+    <div id="add-item-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="hideModal('add-item-modal')">&times;</span>
+            <h2>Add New Item</h2>
+            <form onsubmit="addItem(event)">
+                <div class="form-group">
+                    <label for="item-name">Item Name</label>
+                    <input type="text" id="item-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="item-category">Category</label>
+                    <select id="item-category" required>
+                        <option value="">Select Category</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="item-description">Description</label>
+                    <textarea id="item-description" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="item-price">Purchase Price</label>
+                    <input type="number" id="item-price" step="0.01" min="0">
+                </div>
+                <button type="submit" class="btn btn-primary">Add Item</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="create-inspection-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="hideModal('create-inspection-modal')">&times;</span>
+            <h2>Create Inspection</h2>
+            <form onsubmit="createInspection(event)">
+                <div class="form-group">
+                    <label for="inspection-type">Inspection Type</label>
+                    <select id="inspection-type" required>
+                        <option value="">Select Type</option>
+                        <option value="Move-In">Move-In</option>
+                        <option value="Move-Out">Move-Out</option>
+                        <option value="Routine">Routine</option>
+                        <option value="Emergency">Emergency</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="inspection-location">Location</label>
+                    <select id="inspection-location" required>
+                        <option value="">Select Location</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="inspector-name">Inspector Name</label>
+                    <input type="text" id="inspector-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="inspection-notes">Notes</label>
+                    <textarea id="inspection-notes" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Create Inspection</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

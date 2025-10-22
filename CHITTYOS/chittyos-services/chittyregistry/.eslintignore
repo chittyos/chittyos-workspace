@@ -1,0 +1,9 @@
+dist/
+node_modules/
+logs/
+packages/cli/dist/
+**/*.d.ts
+src/**/*.test.ts
+src/mcp-agent-*.ts
+src/registry-certificate-integration.js
+src/universal-registry-worker.js

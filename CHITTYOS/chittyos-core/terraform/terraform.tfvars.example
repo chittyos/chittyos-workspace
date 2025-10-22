@@ -1,0 +1,67 @@
+# ChittyOS Terraform Configuration Example
+# Copy this file to terraform.tfvars and update with your values
+
+# 1Password Service Account Token
+# Get this from 1Password > Developer Tools > Service Accounts
+op_service_account_token = "ops_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# Deployment Environment
+environment = "production"
+
+# ChittyOS Version
+chittyos_version = "2.1.0-ai"
+
+# Enable comprehensive monitoring
+enable_monitoring = true
+
+# Enable audit logging for compliance
+enable_audit_logging = true
+
+# Enable automated credential rotation
+credential_rotation_enabled = true
+
+# Compliance level (standard, enhanced, banking_grade)
+compliance_level = "banking_grade"
+
+# Deploy across multiple accounts
+multi_account_deployment = true
+
+# Enable ChittyFoundation governance
+foundation_governance_enabled = true
+
+# Account configurations (optional override)
+# accounts = {
+#   chittycorp = {
+#     name                = "ChittyCorp LLC"
+#     worker_limit        = 100
+#     compliance_required = true
+#     governance_level    = "enterprise"
+#   }
+#   chittyfinance = {
+#     name                = "ChittyFinance"
+#     worker_limit        = 100
+#     compliance_required = true
+#     governance_level    = "financial"
+#   }
+# }
+
+# Monitoring configuration (optional override)
+# monitoring_config = {
+#   health_check_interval = "30s"
+#   alert_thresholds = {
+#     error_rate   = 0.01  # 1%
+#     latency_ms   = 200   # 200ms
+#     availability = 99.95 # 99.95%
+#   }
+#   notification_channels = ["email", "slack", "pagerduty"]
+# }
+
+# Security configuration (optional override)
+# security_config = {
+#   mfa_required           = true
+#   session_timeout_hours  = 4
+#   ip_allowlist_enabled   = true
+#   audit_log_retention    = "7_years"
+#   encryption_at_rest     = true
+#   encryption_in_transit  = true
+# }

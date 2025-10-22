@@ -1,0 +1,17 @@
+For each domain, update these DNS records:
+
+MX Records (Priority 1-5):
+1 ASPMX.L.GOOGLE.COM.
+5 ALT1.ASPMX.L.GOOGLE.COM.
+5 ALT2.ASPMX.L.GOOGLE.COM.
+10 ALT3.ASPMX.L.GOOGLE.COM.
+10 ALT4.ASPMX.L.GOOGLE.COM.
+
+SPF Record:
+"v=spf1 include:_spf.google.com ~all"
+
+DKIM:
+google._domainkey CNAME [Get from Admin Console]
+
+DMARC:
+_dmarc "v=DMARC1; p=quarantine; rua=mailto:admin@aribia.llc"

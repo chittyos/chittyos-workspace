@@ -1,0 +1,65 @@
+// ChittyRegistry Cloudflare Workers Configuration
+{
+  "name": "chittyregistry-production",
+  "main": "src/universal-registry-worker.js",
+  "compatibility_date": "2025-03-07",
+  "compatibility_flags": ["nodejs_compat"],
+  "account_id": "0bc21e3a5a9de1a4cc843be9c3e98121",
+
+  // Observability
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+
+  // Production environment variables
+  "vars": {
+    "SERVICE_NAME": "chittyregistry-universal",
+    "SERVICE_VERSION": "2.0.0",
+    "CHITTYOS_ENVIRONMENT": "production",
+    "REGISTRY_BASE_PATH": "/Users/nb/.claude/projects/-",
+    "CHITTYCHAT_INTEGRATION": "enabled"
+  },
+
+  // KV Namespaces
+  "kv_namespaces": [
+    {
+      "binding": "REGISTRY_CACHE",
+      "id": "58649f33726646d8b8c44befd4140947"
+    },
+    {
+      "binding": "REGISTRY_STORE",
+      "id": "b4518a6db20640ea990099f6e8497771"
+    }
+  ],
+
+  // Production route
+  "routes": [
+    {
+      "pattern": "registry.chitty.cc/*",
+      "zone_name": "chitty.cc"
+    }
+  ],
+
+  // Staging environment
+  "env": {
+    "staging": {
+      "name": "chittyregistry-staging",
+      "vars": {
+        "SERVICE_NAME": "chittyregistry-universal-staging",
+        "SERVICE_VERSION": "2.0.0-staging",
+        "CHITTYOS_ENVIRONMENT": "staging"
+      },
+      "kv_namespaces": [
+        {
+          "binding": "REGISTRY_CACHE",
+          "id": "58649f33726646d8b8c44befd4140947"
+        },
+        {
+          "binding": "REGISTRY_STORE",
+          "id": "b4518a6db20640ea990099f6e8497771"
+        }
+      ]
+    }
+  }
+}

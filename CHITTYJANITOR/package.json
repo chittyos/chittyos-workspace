@@ -1,0 +1,34 @@
+{
+  "name": "chitty-janitor",
+  "version": "3.0.0",
+  "description": "Adaptive AI cleanup agent with multi-model support for Cloudflare Workers",
+  "main": "src/worker.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "test": "vitest"
+  },
+  "keywords": [
+    "cleanup",
+    "ai",
+    "adaptive",
+    "cloudflare-workers",
+    "multi-model",
+    "predictive"
+  ],
+  "author": "ChittyOS",
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241127.0",
+    "wrangler": "^3.90.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
+    "openai": "^4.77.3",
+    "@google/generative-ai": "^0.21.0",
+    "hono": "^4.6.14"
+  }
+}

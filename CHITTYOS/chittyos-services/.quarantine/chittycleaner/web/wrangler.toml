@@ -1,0 +1,16 @@
+name = "chittycleaner-web"
+pages_build_output_dir = "out"
+
+[env.production]
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[env.production.routes]]
+pattern = "cleaner.chitty.cc"
+
+[[env.production.routes]]
+pattern = "*.cleaner.chitty.cc"
+
+[env.production.vars]
+ENVIRONMENT = "production"
+DOMAIN = "cleaner.chitty.cc"

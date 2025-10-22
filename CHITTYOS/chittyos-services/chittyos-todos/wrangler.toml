@@ -1,0 +1,26 @@
+name = "chittyos-todos"
+main = "src/index.js"
+compatibility_date = "2025-10-11"
+workers_dev = true
+
+# Cloudflare Account - ChittyCorp LLC
+account_id = "0bc21e3a5a9de1a4cc843be9c3e98121"
+
+# KV Namespace for todo storage
+[[kv_namespaces]]
+binding = "TODOS_HUB"
+id = "placeholder_dev"
+
+# Production environment
+[env.production]
+name = "chittyos-todos-production"
+routes = [
+  { pattern = "todos.chitty.cc/*", zone_name = "chitty.cc" }
+]
+
+[[env.production.kv_namespaces]]
+binding = "TODOS_HUB"
+id = "167f1089e818484aba50abc2b0ee674e"
+
+# Environment variables (set via wrangler secret)
+# CHITTY_ID_TOKEN - For ChittyID service integration

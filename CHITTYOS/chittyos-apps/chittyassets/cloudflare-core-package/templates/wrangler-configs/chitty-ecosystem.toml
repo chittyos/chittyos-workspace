@@ -1,0 +1,183 @@
+# ChittyOS Ecosystem Wrangler Configuration
+# This template configures all ChittyOS services for Cloudflare Workers
+
+name = "chittyos-ecosystem"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+# Account configuration
+account_id = "${CLOUDFLARE_ACCOUNT_ID}"
+workers_dev = true
+
+# Environment variables
+[env.production.vars]
+ENVIRONMENT = "production"
+CHITTY_API_BASE = "https://api.chitty.cc"
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
+CHITTY_API_BASE = "https://api-staging.chitty.cc"
+
+[env.development.vars]
+ENVIRONMENT = "development"
+CHITTY_API_BASE = "https://api-dev.chitty.cc"
+
+# Service bindings for ChittyOS ecosystem
+[[env.production.services]]
+binding = "SCHEMA_SERVICE"
+service = "chitty-schema-worker"
+
+[[env.production.services]]
+binding = "ID_SERVICE"
+service = "chitty-id-worker"
+
+[[env.production.services]]
+binding = "CANON_SERVICE"
+service = "chitty-canon-worker"
+
+[[env.production.services]]
+binding = "REGISTRY_SERVICE"
+service = "chitty-registry-worker"
+
+[[env.production.services]]
+binding = "AUTH_SERVICE"
+service = "chitty-auth-worker"
+
+[[env.production.services]]
+binding = "CHAT_SERVICE"
+service = "chitty-chat-worker"
+
+[[env.production.services]]
+binding = "ASSETS_SERVICE"
+service = "chitty-assets-worker"
+
+# AI binding
+[[env.production.ai]]
+binding = "AI"
+
+[[env.staging.ai]]
+binding = "AI"
+
+[[env.development.ai]]
+binding = "AI"
+
+# Vectorize bindings
+[[env.production.vectorize]]
+binding = "CHITTY_VECTORS"
+index_name = "chitty-ecosystem-vectors"
+
+[[env.staging.vectorize]]
+binding = "CHITTY_VECTORS"
+index_name = "chitty-ecosystem-vectors-staging"
+
+[[env.development.vectorize]]
+binding = "CHITTY_VECTORS"
+index_name = "chitty-ecosystem-vectors-dev"
+
+# KV storage for caching
+[[env.production.kv_namespaces]]
+binding = "CHITTY_CACHE"
+id = "${CHITTY_CACHE_KV_ID}"
+
+[[env.staging.kv_namespaces]]
+binding = "CHITTY_CACHE"
+id = "${CHITTY_CACHE_STAGING_KV_ID}"
+
+# D1 database bindings
+[[env.production.d1_databases]]
+binding = "CHITTY_DB"
+database_name = "chitty-ecosystem-db"
+database_id = "${CHITTY_DB_PRODUCTION_ID}"
+
+[[env.staging.d1_databases]]
+binding = "CHITTY_DB"
+database_name = "chitty-ecosystem-db-staging"
+database_id = "${CHITTY_DB_STAGING_ID}"
+
+# R2 storage for assets
+[[env.production.r2_buckets]]
+binding = "CHITTY_ASSETS"
+bucket_name = "chitty-assets-production"
+
+[[env.staging.r2_buckets]]
+binding = "CHITTY_ASSETS"
+bucket_name = "chitty-assets-staging"
+
+# Custom domain routes for production
+[[env.production.routes]]
+pattern = "schema.chitty.cc/*"
+custom_domain = true
+
+[[env.production.routes]]
+pattern = "id.chitty.cc/*"
+custom_domain = true
+
+[[env.production.routes]]
+pattern = "canon.chitty.cc/*"
+custom_domain = true
+
+[[env.production.routes]]
+pattern = "registry.chitty.cc/*"
+custom_domain = true
+
+[[env.production.routes]]
+pattern = "auth.chitty.cc/*"
+custom_domain = true
+
+[[env.production.routes]]
+pattern = "chat.chitty.cc/*"
+custom_domain = true
+
+[[env.production.routes]]
+pattern = "assets.chitty.cc/*"
+custom_domain = true
+
+# Staging routes
+[[env.staging.routes]]
+pattern = "staging-schema.chitty.cc/*"
+custom_domain = true
+
+[[env.staging.routes]]
+pattern = "staging-id.chitty.cc/*"
+custom_domain = true
+
+[[env.staging.routes]]
+pattern = "staging-canon.chitty.cc/*"
+custom_domain = true
+
+[[env.staging.routes]]
+pattern = "staging-registry.chitty.cc/*"
+custom_domain = true
+
+[[env.staging.routes]]
+pattern = "staging-auth.chitty.cc/*"
+custom_domain = true
+
+[[env.staging.routes]]
+pattern = "staging-chat.chitty.cc/*"
+custom_domain = true
+
+[[env.staging.routes]]
+pattern = "staging-assets.chitty.cc/*"
+custom_domain = true
+
+# Build configuration
+[build]
+command = "npm run build"
+cwd = "."
+
+# Deployment triggers
+[triggers]
+crons = ["0 */6 * * *"]  # Health checks every 6 hours
+
+# Analytics and observability
+[observability]
+enabled = true
+
+# Compatibility flags
+compatibility_flags = ["nodejs_compat"]
+
+# Limits
+[limits]
+cpu_ms = 50000
+memory_mb = 512

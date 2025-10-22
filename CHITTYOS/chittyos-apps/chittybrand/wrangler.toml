@@ -1,0 +1,57 @@
+name = "chittybrand-cdn"
+main = "cloudflare-worker-cdn.js"
+compatibility_date = "2023-12-01"
+
+# Production configuration
+[env.production]
+name = "chittybrand-cdn-prod"
+routes = [
+  "brand.chittyos.com/*",
+  "api.brand.chittyos.com/*"
+]
+
+# Staging configuration
+[env.staging]
+name = "chittybrand-cdn-staging"
+routes = [
+  "staging-brand.chittyos.com/*"
+]
+
+# Development configuration
+[env.development]
+name = "chittybrand-cdn-dev"
+
+# KV Namespaces for caching
+[[kv_namespaces]]
+binding = "BRAND_CACHE"
+id = "brand_cache_namespace_id"
+preview_id = "brand_cache_preview_id"
+
+# R2 Buckets for asset storage
+[[r2_buckets]]
+binding = "BRAND_ASSETS"
+bucket_name = "chitty-brand-assets"
+preview_bucket_name = "chitty-brand-assets-preview"
+
+# Environment variables
+[vars]
+ENVIRONMENT = "production"
+API_VERSION = "v1"
+CACHE_TTL = "7200"
+ENABLE_ANALYTICS = "true"
+
+# Worker limits and performance
+[limits]
+cpu_ms = 50
+
+# Schema Sync Worker configuration
+[[services]]
+binding = "SCHEMA_SYNC"
+service = "chittybrand-schema-sync"
+
+# Additional worker for schema sync
+[env.production.services]
+SCHEMA_SYNC = { service = "chittybrand-schema-sync-prod" }
+
+[env.staging.services]
+SCHEMA_SYNC = { service = "chittybrand-schema-sync-staging" }

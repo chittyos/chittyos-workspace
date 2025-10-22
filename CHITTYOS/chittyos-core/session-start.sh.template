@@ -1,0 +1,96 @@
+#!/bin/bash
+#
+# ChittyOS Session Start Hook
+# Integrates with ChittyConnect for context management
+#
+
+CHITTYOS_ROOT="{{CHITTYOS_ROOT}}"
+CHITTYCONNECT_URL="${CHITTYCONNECT_URL:-https://connect.chitty.cc}"
+CHITTY_ID_TOKEN="${CHITTY_ID_TOKEN}"
+
+# Session metadata
+SESSION_CWD="$(pwd)"
+SESSION_TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+echo "🎯 ChittyOS Session Coordinator"
+echo ""
+
+# Step 1: Determine context from CWD
+if [[ "$SESSION_CWD" =~ "chittyrouter" ]]; then
+  PROJECT_CONTEXT="chittyrouter"
+elif [[ "$SESSION_CWD" =~ "chittychat" ]]; then
+  PROJECT_CONTEXT="chittychat"
+elif [[ "$SESSION_CWD" =~ "derail.me" ]]; then
+  PROJECT_CONTEXT="derailme"
+else
+  PROJECT_CONTEXT="chittyos-framework"
+fi
+
+# Step 2: Initialize session with ChittyConnect
+if [ -n "$CHITTY_ID_TOKEN" ]; then
+  echo "📡 Connecting to ChittyConnect..."
+
+  SESSION_RESPONSE=$(curl -s -X POST "$CHITTYCONNECT_URL/v1/contexts/session/start" \
+    -H "Authorization: Bearer $CHITTY_ID_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{
+      \"cwd\": \"$SESSION_CWD\",
+      \"project\": \"$PROJECT_CONTEXT\",
+      \"timestamp\": \"$SESSION_TIMESTAMP\"
+    }")
+
+  if [ $? -eq 0 ]; then
+    SESSION_ID=$(echo "$SESSION_RESPONSE" | jq -r '.sessionId // "unknown"')
+    CONTEXT_ID=$(echo "$SESSION_RESPONSE" | jq -r '.contextId // "unknown"')
+
+    echo "  ✓ Session: $SESSION_ID"
+    echo "  ✓ Context: $CONTEXT_ID"
+    echo ""
+
+    # Step 3: Materialize customizations
+    echo "📥 Materializing customizations..."
+
+    # Run materialization script
+    if [ -f "$CHITTYOS_ROOT/chittyos-core/.claude/scripts/materialize-context.sh" ]; then
+      bash "$CHITTYOS_ROOT/chittyos-core/.claude/scripts/materialize-context.sh" \
+        "$CONTEXT_ID" "$SESSION_RESPONSE"
+    else
+      # Fallback: Save session context locally
+      mkdir -p "$HOME/.chittyos/sessions"
+      RESOLVED_CONTEXT=$(curl -s "$CHITTYCONNECT_URL/v1/contexts/$CONTEXT_ID?resolve=true" \
+        -H "Authorization: Bearer $CHITTY_ID_TOKEN")
+      echo "$RESOLVED_CONTEXT" > "$HOME/.chittyos/sessions/$SESSION_ID.json"
+
+      AGENT_COUNT=$(echo "$RESOLVED_CONTEXT" | jq -r '.resolved.agents | length // 0')
+      MCP_COUNT=$(echo "$RESOLVED_CONTEXT" | jq -r '.resolved.mcpServers | keys | length // 0')
+
+      echo "  ✓ Agents: $AGENT_COUNT active"
+      echo "  ✓ MCPs: $MCP_COUNT connected"
+    fi
+    echo ""
+
+  else
+    echo "  ⚠️  ChittyConnect unavailable, using local context"
+    SESSION_ID="local-$(date +%s)"
+  fi
+else
+  echo "⚠️  CHITTY_ID_TOKEN not set, running in local mode"
+  SESSION_ID="local-$(date +%s)"
+fi
+
+# Step 4: Run local session coordinator (backward compatibility)
+if [ -f "$HOME/.claude/projects/-/CHITCOMMIT/chittychat-data/session-coordinator.js" ]; then
+  echo "🧠 Running session coordinator..."
+  node "$HOME/.claude/projects/-/CHITCOMMIT/chittychat-data/session-coordinator.js" 2>&1 | tee -a ~/.chittychat/logs/session-coordinator.log
+fi
+
+# Step 5: Update sync status
+STATUS_FILE="$HOME/.chittychat/claude_sync_status.json"
+if [ -f "$STATUS_FILE" ]; then
+  jq --arg timestamp "$SESSION_TIMESTAMP" \
+     --arg session "$SESSION_ID" \
+     '.last_updated = $timestamp | .status = "active_session" | .sessionId = $session' \
+     "$STATUS_FILE" > "$STATUS_FILE.tmp" && mv "$STATUS_FILE.tmp" "$STATUS_FILE"
+fi
+
+exit 0

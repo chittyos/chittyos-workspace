@@ -1,0 +1,268 @@
+name: Publish Claude Customizations
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'chittyos-core/.claude/agents/**'
+      - 'chittyos-core/.claude/commands/**'
+      - 'chittyos-core/.claude/hooks/**'
+      - 'chittyos-core/.claude/output-styles/**'
+      - 'chittyos-core/.claude/mcp-servers/**'
+      - '.github/workflows/publish-customizations.yml'
+  workflow_dispatch:
+
+jobs:
+  validate-customizations:
+    name: Validate Customizations
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate agent files
+        run: |
+          echo "🤖 Validating agents..."
+          AGENT_COUNT=0
+          for agent in chittyos-core/.claude/agents/*.md; do
+            if [ -f "$agent" ]; then
+              # Check has title
+              if ! grep -q "^# " "$agent"; then
+                echo "❌ Missing title in $agent"
+                exit 1
+              fi
+              AGENT_COUNT=$((AGENT_COUNT + 1))
+            fi
+          done
+          echo "✅ Validated $AGENT_COUNT agents"
+
+      - name: Validate command files
+        run: |
+          echo "📝 Validating commands..."
+          CMD_COUNT=0
+          for cmd in chittyos-core/.claude/commands/*.md; do
+            if [ -f "$cmd" ]; then
+              # Check has title starting with /
+              if ! grep -q "^# /" "$cmd"; then
+                echo "❌ Command must start with / in $cmd"
+                exit 1
+              fi
+              CMD_COUNT=$((CMD_COUNT + 1))
+            fi
+          done
+          echo "✅ Validated $CMD_COUNT commands"
+
+      - name: Validate hook templates
+        run: |
+          echo "🪝 Validating hooks..."
+          HOOK_COUNT=0
+          for hook in chittyos-core/.claude/hooks/*.template; do
+            if [ -f "$hook" ]; then
+              # Check is executable
+              if [[ ! "$hook" =~ \.sh\.template$ ]]; then
+                echo "❌ Hook must be .sh.template: $hook"
+                exit 1
+              fi
+              HOOK_COUNT=$((HOOK_COUNT + 1))
+            fi
+          done
+          echo "✅ Validated $HOOK_COUNT hooks"
+
+  publish-to-chittyconnect:
+    name: Publish to ChittyConnect
+    needs: validate-customizations
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Create customizations bundle
+        run: |
+          echo "📦 Creating customizations bundle..."
+
+          # Create bundle directory
+          mkdir -p /tmp/chittyos-customizations
+          cd /tmp/chittyos-customizations
+
+          # Copy customizations
+          cp -r $GITHUB_WORKSPACE/chittyos-core/.claude/* .
+
+          # Create metadata
+          cat > manifest.json << EOF
+          {
+            "version": "2.0.0",
+            "commit": "${{ github.sha }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "customizations": {
+              "agents": $(ls agents/*.md 2>/dev/null | wc -l | tr -d ' '),
+              "commands": $(ls commands/*.md 2>/dev/null | wc -l | tr -d ' '),
+              "hooks": $(ls hooks/*.template 2>/dev/null | wc -l | tr -d ' '),
+              "outputStyles": $(ls output-styles/*.md 2>/dev/null | wc -l | tr -d ' ')
+            }
+          }
+          EOF
+
+          cat manifest.json
+
+      - name: Upload agents to ChittyConnect
+        env:
+          CHITTY_ID_TOKEN: ${{ secrets.CHITTY_ID_TOKEN }}
+        run: |
+          echo "🤖 Uploading agents..."
+
+          for agent in /tmp/chittyos-customizations/agents/*.md; do
+            if [ -f "$agent" ]; then
+              AGENT_NAME=$(basename "$agent" .md)
+              AGENT_CONTENT=$(cat "$agent" | jq -Rs .)
+
+              curl -s -X POST https://connect.chitty.cc/v1/customizations/agents \
+                -H "Authorization: Bearer $CHITTY_ID_TOKEN" \
+                -H "Content-Type: application/json" \
+                -d "{
+                  \"name\": \"$AGENT_NAME\",
+                  \"content\": $AGENT_CONTENT,
+                  \"version\": \"2.0.0\",
+                  \"commit\": \"${{ github.sha }}\"
+                }" || echo "⚠️  Failed to upload $AGENT_NAME"
+            fi
+          done
+
+          echo "✅ Agents uploaded"
+
+      - name: Upload commands to ChittyConnect
+        env:
+          CHITTY_ID_TOKEN: ${{ secrets.CHITTY_ID_TOKEN }}
+        run: |
+          echo "📝 Uploading commands..."
+
+          for cmd in /tmp/chittyos-customizations/commands/*.md; do
+            if [ -f "$cmd" ]; then
+              CMD_NAME=$(basename "$cmd" .md)
+              CMD_CONTENT=$(cat "$cmd" | jq -Rs .)
+
+              curl -s -X POST https://connect.chitty.cc/v1/customizations/commands \
+                -H "Authorization: Bearer $CHITTY_ID_TOKEN" \
+                -H "Content-Type: application/json" \
+                -d "{
+                  \"name\": \"$CMD_NAME\",
+                  \"content\": $CMD_CONTENT,
+                  \"version\": \"2.0.0\",
+                  \"commit\": \"${{ github.sha }}\"
+                }" || echo "⚠️  Failed to upload $CMD_NAME"
+            fi
+          done
+
+          echo "✅ Commands uploaded"
+
+      - name: Upload hooks to ChittyConnect
+        env:
+          CHITTY_ID_TOKEN: ${{ secrets.CHITTY_ID_TOKEN }}
+        run: |
+          echo "🪝 Uploading hooks..."
+
+          for hook in /tmp/chittyos-customizations/hooks/*.template; do
+            if [ -f "$hook" ]; then
+              HOOK_NAME=$(basename "$hook" .template)
+              HOOK_CONTENT=$(cat "$hook" | jq -Rs .)
+
+              curl -s -X POST https://connect.chitty.cc/v1/customizations/hooks \
+                -H "Authorization: Bearer $CHITTY_ID_TOKEN" \
+                -H "Content-Type: application/json" \
+                -d "{
+                  \"name\": \"$HOOK_NAME\",
+                  \"content\": $HOOK_CONTENT,
+                  \"version\": \"2.0.0\",
+                  \"commit\": \"${{ github.sha }}\"
+                }" || echo "⚠️  Failed to upload $HOOK_NAME"
+            fi
+          done
+
+          echo "✅ Hooks uploaded"
+
+      - name: Update default contexts
+        env:
+          CHITTY_ID_TOKEN: ${{ secrets.CHITTY_ID_TOKEN }}
+        run: |
+          echo "🎯 Updating default ChittyOS context..."
+
+          # Get or create default ChittyOS project context
+          CONTEXT_ID=$(curl -s https://connect.chitty.cc/v1/contexts/list \
+            -H "Authorization: Bearer $CHITTY_ID_TOKEN" \
+            | jq -r '.contexts[] | select(.name == "chittyos-framework") | .contextId')
+
+          if [ -z "$CONTEXT_ID" ]; then
+            # Create default context
+            RESPONSE=$(curl -s -X POST https://connect.chitty.cc/v1/contexts/create \
+              -H "Authorization: Bearer $CHITTY_ID_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{
+                "type": "project",
+                "name": "chittyos-framework",
+                "customizations": {
+                  "agents": [
+                    "chittyos-platform-guardian",
+                    "cloudflare-worker-architect",
+                    "bullshit-detector"
+                  ],
+                  "commands": [
+                    "chittycheck",
+                    "chittychat",
+                    "context"
+                  ]
+                }
+              }')
+
+            CONTEXT_ID=$(echo "$RESPONSE" | jq -r '.context.chittyId')
+            echo "✅ Created default context: $CONTEXT_ID"
+          else
+            echo "✅ Default context exists: $CONTEXT_ID"
+          fi
+
+      - name: Mint publication event
+        env:
+          CHITTY_ID_TOKEN: ${{ secrets.CHITTY_ID_TOKEN }}
+        run: |
+          EVENT_ID=$(curl -s -X POST https://id.chitty.cc/v1/mint \
+            -H "Authorization: Bearer $CHITTY_ID_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "type": "EVENT",
+              "metadata": {
+                "event": "customizations_published",
+                "version": "2.0.0",
+                "commit": "${{ github.sha }}",
+                "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+              }
+            }' | jq -r '.chittyId')
+
+          echo "✅ Publication event: $EVENT_ID"
+
+  notify-active-sessions:
+    name: Notify Active Sessions
+    needs: publish-to-chittyconnect
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger session sync
+        env:
+          CHITTY_ID_TOKEN: ${{ secrets.CHITTY_ID_TOKEN }}
+        run: |
+          # Notify ChittyConnect that customizations were updated
+          # Active sessions can then re-sync via /context sync
+
+          curl -s -X POST https://connect.chitty.cc/v1/events/customizations-updated \
+            -H "Authorization: Bearer $CHITTY_ID_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "version": "2.0.0",
+              "commit": "${{ github.sha }}",
+              "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'",
+              "action": "suggest_sync"
+            }' || echo "⚠️  Event notification not available"
+
+          echo "✅ Session sync notification sent"

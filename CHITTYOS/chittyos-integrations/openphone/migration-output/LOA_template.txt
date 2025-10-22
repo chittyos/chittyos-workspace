@@ -1,0 +1,49 @@
+LETTER OF AUTHORIZATION (LOA)
+=====================================
+
+Date: 9/11/2025
+
+TO: OpenPhone Support
+FROM: [YOUR COMPANY NAME]
+
+RE: Port Out Request for Account [YOUR ACCOUNT ID]
+
+We hereby authorize the release and porting of the following telephone numbers from OpenPhone to our new carrier Twilio:
+
+NUMBERS TO PORT:
+----------------
+☐ +1 (307) 800-0037 - IT CAN BE LLC (PN3322629411be441f12588e965cc31dab)
+☐ +1 (872) 274-2421 - Main Line (PNc1d3f68d2b98a37a41682dd63c7c93bd)
+☐ +1 (872) 278-4141 - Lakeside Loft (PNb989e1ae69cbdf6f4ae55e023b7fb734)
+☐ +1 (872) 338-0002 - City Studio (PNc952a6f845cd2911b20e0d25428862ff)
+☐ +1 (872) 338-0008 - Cozy Castle (PNf001215e40f72671413eb5fc07b69191)
+☐ +1 (872) 338-0009 - Chitty Concierge (PNf598b356a82e4f795b7bb4157bfffffc)
+
+CURRENT ACCOUNT INFORMATION:
+----------------------------
+Account Name: [YOUR NAME/COMPANY]
+Account Email: [YOUR EMAIL]
+Billing Address: [YOUR ADDRESS]
+Account PIN: [REQUEST FROM OPENPHONE]
+
+NEW CARRIER INFORMATION:
+------------------------
+Carrier: Twilio Inc.
+Account SID: [YOUR TWILIO ACCOUNT SID]
+Target Date: ASAP
+
+Please provide:
+1. Port-out PIN/authorization code
+2. Customer Service Record (CSR) for each number
+3. Most recent bill/invoice
+4. Confirmation of port-out initiation
+
+We understand this port will terminate our service with OpenPhone for these numbers.
+
+Authorized Signature: _______________________
+Print Name: _______________________
+Title: _______________________
+Date: _______________________
+
+EMAIL THIS TO: support@openphone.com
+SUBJECT: Port Out Request - [Your Account Name]

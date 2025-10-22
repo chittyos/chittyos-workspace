@@ -1,0 +1,55 @@
+Type,Microsoft 365 Email,Google Workspace Setup,Migration Action,Notes
+PRIMARY USER,nick@aribia.llc,nick@aribia.llc,Keep as paid user,Primary admin with all aliases
+PRIMARY USER,sharon@aribia.llc,sharon@aribia.llc,Keep as paid user,Senior advisor account
+PRIMARY USER,cynthia@chicagofurnishedcondos.com,cynthia@aribia.llc,Create as paid user,Director of Operations
+ENTITY GROUP,genie@nevershitty.com,Google Group,Convert to free group,Main communication channel
+ENTITY GROUP,loft@byaribia.com,Google Group,Convert to free group,Lakeside Loft property
+ENTITY GROUP,mgmt@apt-arlene.com,Google Group,Convert to free group,APT ARLENE management
+ENTITY GROUP,mgmt@aribia.llc,Google Group,Convert to free group,Main ARIBIA management
+ENTITY GROUP,mgmt@byaribia.com,Google Group,Convert to free group,By ARIBIA brand
+ENTITY GROUP,mgmt@chicagofurnishedcondos.com,Google Group,Convert to free group,CFC management
+ENTITY GROUP,mgmt@chittyservices.com,Google Group,Convert to free group,Chitty Services
+ENTITY GROUP,mgmt@itcanbellc.com,Google Group,Convert to free group,IT CAN BE LLC
+ENTITY GROUP,mgmt@jeanarlene.com,Google Group,Convert to free group,Jean Arlene Venturing
+ENTITY GROUP,mgmt@unclesteve.org,Google Group,Convert to free group,Uncle Steve LLC
+ENTITY GROUP,legal@itcanbellc.com,Google Group,Convert to free group,Legal communications
+ENTITY GROUP,mirror@cozy-castle.com,Google Group,Convert to free group,Mirror fitness
+ENTITY GROUP,no-reply@aribia.llc,Google Group,Convert to free group,No-reply automated
+ENTITY GROUP,addison@aribia.llc,Google Group,Convert to free group,Lakeside Loft Addison
+ENTITY GROUP,web@nevershitty.com,Google Group,Convert to free group,Web inquiries
+PAYMENT GROUP,pay@cozycastlechicago.com,Google Group,Convert to free group,Cozy Castle payments
+PAYMENT GROUP,pay@byaribia.com,Google Group,Convert to free group,Main payments
+PAYMENT GROUP,pay-chitty@aribia.llc,Google Group,Convert to free group,Chitty payments
+PAYMENT GROUP,p0002@aribia.llc,Google Group,Convert to free group,CFC payments
+PAYMENT GROUP,p00004@aribia.llc,Google Group,Convert to free group,IT CAN BE payments
+PROPERTY GROUP,stay@villavistachicago.com,Google Group,Convert to free group,Villa Vista bookings
+PROPERTY GROUP,stay@cozycastlechicago.com,Google Group,Convert to free group,Cozy Castle bookings
+PROPERTY GROUP,city@byaribia.com,Google Group,Convert to free group,City Studio
+PROPERTY GROUP,all-inclusive@chicagofurnishedcondos.com,Google Group,Convert to free group,All inclusive stays
+PROPERTY GROUP,condos@byaribia.com,Google Group,Convert to free group,General condos inquiries
+PROPERTY GROUP,reservecozy@aribia.llc,Google Group,Convert to free group,Cozy reserve
+PROPERTY GROUP,reserveloft@aribia.llc,Google Group,Convert to free group,Loft reserve
+PROPERTY GROUP,reservearlene@aribia.llc,Google Group,Convert to free group,Villa Vista reserve
+PROPERTY GROUP,citystudio@aribia.llc,Google Group,Convert to free group,City Studio entity
+PROPERTY GROUP,cozycastle@aribia.llc,Google Group,Convert to free group,Cozy Castle entity
+SERVICE GROUP,chico@chicagofurnishedcondos.com,Google Group,Convert to free group,AI assistant
+SERVICE GROUP,sharonexpenses@aribia.llc,Google Group,Convert to free group,Sharon expenses
+SERVICE GROUP,get@chittyservices.com,Google Group,Convert to free group,Chitty services main
+SERVICE GROUP,CHITTYRIDES@aribia.llc,Google Group,Convert to free group,Chitty rides
+DISTRIBUTION LIST,allcompany@aribia.llc,Google Group,Convert to free group,All company communications
+DISTRIBUTION LIST,all@aribia.llc,Google Group,Convert to free group,All ARIBIA
+DISTRIBUTION LIST,arlenegroup@apt-arlene.com,Google Group,Convert to free group,APT ARLENE group
+DISTRIBUTION LIST,llcgroup@aribia.llc,Google Group,Convert to free group,ARIBIA LLC group
+DISTRIBUTION LIST,mgmtgroup@aribia-mgmt.com,Google Group,Convert to free group,Management group
+DISTRIBUTION LIST,chittygroup@chittyservices.com,Google Group,Convert to free group,Chitty group
+DISTRIBUTION LIST,citygroup@chicity-studio.com,Google Group,Convert to free group,City Studio group
+DISTRIBUTION LIST,ITCANBELLC@aribia.llc,Google Group,Convert to free group,IT CAN BE group
+NICK ALIASES,nick@chicagofurnishedcondos.com,Alias for nick@aribia.llc,Add as alias,Nick's CFC email
+NICK ALIASES,nick@nevershitty.com,Alias for nick@aribia.llc,Add as alias,Nick's Chitty email
+NICK ALIASES,nick@itcanbellc.com,Alias for nick@aribia.llc,Add as alias,Nick's ICB email
+NICK ALIASES,nick@jeanarlene.com,Alias for nick@aribia.llc,Add as alias,Nick's JAV email
+EXTERNAL USER,amhed1986@gmail.com,Skip,No action needed,External guest
+EXTERNAL USER,jonathanschatz@allenglassman.com,Skip,No action needed,External guest
+EXTERNAL USER,JosephLuckett@allenglassman.com,Skip,No action needed,External guest
+EXTERNAL USER,nick@misternw.com,Skip,No action needed,External guest
+EXTERNAL USER,smperez51015@gmail.com,Skip,No action needed,External guest
