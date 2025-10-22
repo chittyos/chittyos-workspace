@@ -4,13 +4,13 @@
   "description": "ChittyRegistry Universal System - Cloudflare Workers",
   "main": "src/universal-registry-worker.js",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
-    "deploy:staging": "wrangler deploy --env staging",
-    "deploy:production": "wrangler deploy --env production",
+    "dev": "npx wrangler dev",
+    "deploy": "npx wrangler deploy",
+    "deploy:staging": "npx wrangler deploy --env staging",
+    "deploy:production": "npx wrangler deploy --env production",
     "test": "echo \"Tests passed - production deployment ready\"",
-    "validate": "wrangler validate",
-    "tail": "wrangler tail"
+    "validate": "npx wrangler validate",
+    "tail": "npx wrangler tail"
   },
   "dependencies": {
     "axios": "^1.4.0",
@@ -38,7 +38,8 @@
     "jest": "^29.6.1",
     "ts-jest": "^29.1.1",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.1.6"
+    "typescript": "^5.1.6",
+    "wrangler": "^4.44.0"
   },
   "keywords": [
     "chittyos",
