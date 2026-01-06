@@ -1,0 +1,18 @@
+name = "gitchitty"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[env.production]
+routes = [
+  { pattern = "git.chitty.cc/*", zone_name = "chitty.cc" }
+]
+
+[env.staging]
+routes = [
+  { pattern = "git-staging.chitty.cc/*", zone_name = "chitty.cc" }
+]
+
+# R2 bucket for package storage
+# [[r2_buckets]]
+# binding = "PACKAGES"
+# bucket_name = "chittyos-packages"

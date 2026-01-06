@@ -1,0 +1,7 @@
+packages:
+  - 'chittycore'
+  - 'chittyapi'
+  - 'chittymcp'
+  - 'chittydocs'
+  - 'gitchitty'
+  - 'getchitty'

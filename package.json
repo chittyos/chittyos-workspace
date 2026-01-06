@@ -1,0 +1,26 @@
+{
+  "name": "chittyos-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ChittyOS Gateway Services Workspace",
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm -r --parallel dev",
+    "deploy": "pnpm -r deploy",
+    "deploy:api": "pnpm --filter chittyapi deploy",
+    "deploy:mcp": "pnpm --filter chittymcp deploy",
+    "deploy:docs": "pnpm --filter chittydocs deploy",
+    "deploy:git": "pnpm --filter gitchitty deploy",
+    "deploy:get": "pnpm --filter getchitty deploy",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "wrangler": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18",
+    "pnpm": ">=8"
+  }
+}

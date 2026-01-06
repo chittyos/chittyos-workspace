@@ -1,0 +1,22 @@
+{
+  "name": "@chittyos/gitchitty",
+  "version": "0.1.0",
+  "description": "GitChitty Package Registry - git.chitty.cc",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "tsc",
+    "deploy": "wrangler deploy",
+    "deploy:staging": "wrangler deploy --env staging",
+    "tail": "wrangler tail"
+  },
+  "dependencies": {
+    "@chittyos/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.0.0",
+    "typescript": "^5.5.0",
+    "wrangler": "^3.0.0"
+  }
+}
