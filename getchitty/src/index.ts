@@ -11,11 +11,22 @@
  *   get.chitty.cc/service/{service}  -> service info page
  */
 
-import { listServices, getService, getPackageMetadata, corsHeaders } from '@chittyos/core'
-import type { ServiceRecord, DiscoveryResult } from '@chittyos/core'
+import {
+  listServices,
+  getService,
+  getPackageMetadata,
+  corsHeaders,
+  contextFromRequest,
+  createAuditEvent,
+  logAudit,
+  addContextHeaders
+} from '@chittyos/core'
+import type { ServiceRecord, DiscoveryResult, ContextEnv, ChittyContext } from '@chittyos/core'
 import { classifyIntent, handleIntent } from './intent'
 
-interface Env {}
+interface Env extends ContextEnv {
+  CHITTY_KV?: KVNamespace
+}
 
 // Keyword to service mapping for recommendations
 // Uses short service names matching api.chitty.cc/{service} pattern
@@ -294,7 +305,7 @@ async function generateOnboardPage(service: ServiceRecord): Promise<string> {
 }
 
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  async fetch(request: Request, env: Env, execCtx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url)
 
     if (request.method === 'OPTIONS') {
@@ -302,8 +313,11 @@ export default {
     }
 
     if (url.pathname === '/health') {
-      return Response.json({ status: 'ok', service: 'getchitty', features: ['nl-gateway', 'discovery', 'onboarding'] })
+      return Response.json({ status: 'ok', service: 'getchitty', features: ['nl-gateway', 'discovery', 'onboarding', 'audit'] })
     }
+
+    // Create context for traceability
+    const chittyCtx = contextFromRequest(request, 'conversation')
 
     // Natural Language Query endpoint
     if (url.pathname === '/ask') {
@@ -314,7 +328,32 @@ export default {
         }
         const intent = classifyIntent(query)
         const response = await handleIntent(intent)
-        return Response.json(response, { headers: corsHeaders(request.headers.get('Origin') || undefined) })
+
+        // Audit the NL query
+        execCtx.waitUntil(logAudit(env, createAuditEvent(
+          chittyCtx,
+          'gateway.ask',
+          'classify',
+          '/ask',
+          {
+            intent: intent.category,
+            confidence: intent.confidence,
+            services: intent.services,
+            query: query.slice(0, 100) // truncate for privacy
+          }
+        )))
+
+        const headers = new Headers(corsHeaders(request.headers.get('Origin') || undefined))
+        addContextHeaders(headers, chittyCtx)
+
+        return Response.json({
+          ...response,
+          _context: {
+            id: chittyCtx.id,
+            requestId: chittyCtx.requestId,
+            grade: chittyCtx.grade
+          }
+        }, { headers })
       }
 
       if (request.method === 'POST') {
@@ -326,7 +365,31 @@ export default {
           }
           const intent = classifyIntent(query)
           const response = await handleIntent(intent)
-          return Response.json(response, { headers: corsHeaders(request.headers.get('Origin') || undefined) })
+
+          // Audit the NL query
+          execCtx.waitUntil(logAudit(env, createAuditEvent(
+            chittyCtx,
+            'gateway.ask',
+            'classify',
+            '/ask',
+            {
+              intent: intent.category,
+              confidence: intent.confidence,
+              services: intent.services
+            }
+          )))
+
+          const headers = new Headers(corsHeaders(request.headers.get('Origin') || undefined))
+          addContextHeaders(headers, chittyCtx)
+
+          return Response.json({
+            ...response,
+            _context: {
+              id: chittyCtx.id,
+              requestId: chittyCtx.requestId,
+              grade: chittyCtx.grade
+            }
+          }, { headers })
         } catch {
           return Response.json({ error: 'Invalid JSON body' }, { status: 400 })
         }
@@ -376,6 +439,15 @@ export default {
       if (!service) {
         return Response.json({ error: `Service '${serviceName}' not found` }, { status: 404 })
       }
+
+      // Audit onboarding access
+      execCtx.waitUntil(logAudit(env, createAuditEvent(
+        chittyCtx,
+        'gateway.onboard',
+        'view',
+        `/onboard/${serviceName}`,
+        { service: serviceName, category: service.category }
+      )))
 
       return new Response(await generateOnboardPage(service), {
         headers: { 'Content-Type': 'text/html' }

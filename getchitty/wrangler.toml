@@ -3,12 +3,25 @@ main = "src/index.ts"
 compatibility_date = "2024-01-01"
 account_id = "0bc21e3a5a9de1a4cc843be9c3e98121"
 
+# KV for audit logging and context storage
+[[kv_namespaces]]
+binding = "CHITTY_KV"
+id = "chitty-audit-kv"
+
 [env.production]
 routes = [
   { pattern = "get.chitty.cc/*", zone_name = "chitty.cc" }
 ]
 
+[[env.production.kv_namespaces]]
+binding = "CHITTY_KV"
+id = "chitty-audit-kv-prod"
+
 [env.staging]
 routes = [
   { pattern = "get-staging.chitty.cc/*", zone_name = "chitty.cc" }
 ]
+
+[[env.staging.kv_namespaces]]
+binding = "CHITTY_KV"
+id = "chitty-audit-kv-staging"

@@ -37,6 +37,8 @@ const STATIC_SERVICES: Record<string, {
   // Data services
   ledger: { baseUrl: 'https://ledger.chitty.cc', exposes: ['api', 'docs'], category: 'Data', status: 'Live', description: 'Immutable transaction ledger' },
   dna: { baseUrl: 'https://dna.chitty.cc', exposes: ['api', 'docs'], category: 'Data', status: 'Live', description: 'Data lineage and provenance' },
+  documint: { baseUrl: 'https://documint.chitty.cc', exposes: ['api', 'docs'], category: 'Data', status: 'Live', description: 'Document classification, hashing, and batch processing' },
+  mint: { baseUrl: 'https://mint.chitty.cc', exposes: ['api', 'docs'], category: 'Data', status: 'Live', description: 'Blockchain anchoring and Merkle proof generation' },
 
   // Domain services
   finance: { baseUrl: 'https://finance.chitty.cc', exposes: ['api', 'docs'], category: 'Domain', status: 'Live', description: 'Financial operations' },
@@ -164,6 +166,8 @@ const STATIC_PACKAGES: Record<string, PackageMetadata> = {
   chittychat: { name: 'chittychat', version: '1.0.0', description: 'Conversational AI client', install_url: 'https://git.chitty.cc/chittychat', platforms: ['npm'], npm: '@chittyos/chat' },
   chittyflow: { name: 'chittyflow', version: '1.0.0', description: 'Workflow orchestration', install_url: 'https://git.chitty.cc/chittyflow', platforms: ['npm'], npm: '@chittyos/flow' },
   chittycore: { name: 'chittycore', version: '1.0.0', description: 'Core ChittyOS utilities', install_url: 'https://git.chitty.cc/chittycore', platforms: ['npm'], npm: '@chittyos/core' },
+  documint: { name: 'documint', version: '1.0.0', description: 'Document classification and batch processing', install_url: 'https://git.chitty.cc/documint', platforms: ['npm'], npm: '@chittyos/documint' },
+  chittymint: { name: 'chittymint', version: '1.0.0', description: 'Blockchain anchoring and Merkle proofs', install_url: 'https://git.chitty.cc/chittymint', platforms: ['npm'], npm: '@chittyos/mint' },
 }
 
 export async function getPackageMetadata(packageName: string): Promise<PackageMetadata | null> {

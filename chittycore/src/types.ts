@@ -51,3 +51,54 @@ export interface DiscoveryResult {
   install_method: 'npm' | 'brew' | 'binary' | 'worker'
   onboard_url: string
 }
+
+// ============================================================
+// ChittyContext - Audit and traceability types
+// ============================================================
+
+export type ContextType =
+  | 'session'
+  | 'conversation'
+  | 'workflow'
+  | 'transaction'
+  | 'identity'
+  | 'agent'
+  | 'mcp'
+  | 'system'
+
+export type ContextGrade = 'A' | 'B' | 'C' | 'D' | 'F'
+export type ContextStatus = 'active' | 'completed' | 'failed' | 'expired' | 'suspended'
+
+export interface ChittyContext {
+  id: string
+  chittyId: string
+  type: ContextType
+  status: ContextStatus
+  grade: ContextGrade
+  trustScore: number  // 0-100
+  sessionId: string
+  requestId: string
+  parentContextId?: string
+  rootContextId?: string
+  dnaFingerprint?: string
+  createdAt: string
+  updatedAt: string
+  expiresAt?: string
+  metadata?: Record<string, unknown>
+}
+
+export interface AuditEvent {
+  id: string
+  contextId: string
+  chittyId: string
+  eventType: string
+  action: string
+  resource: string
+  timestamp: string
+  metadata?: Record<string, unknown>
+}
+
+export interface ContextEnv {
+  CHITTY_KV?: KVNamespace
+  CHITTY_TASKS?: Queue<unknown>
+}
