@@ -1,0 +1,66 @@
+{
+  "name": "@chittyos/cli",
+  "version": "1.0.0",
+  "description": "Command-line tool for ChittyOS project setup and management",
+  "bin": {
+    "chittyos": "./dist/index.js",
+    "chitty": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs --target node18 --no-splitting",
+    "dev": "tsx src/index.ts",
+    "prepublishOnly": "npm run build",
+    "test": "jest"
+  },
+  "keywords": [
+    "chittyos",
+    "cli",
+    "trust-operating-system",
+    "service-registry",
+    "ai-orchestration"
+  ],
+  "author": "ChittyOS",
+  "license": "MIT",
+  "dependencies": {
+    "@chittyos/core": "workspace:*",
+    "boxen": "^7.1.0",
+    "chalk": "^5.3.0",
+    "commander": "^11.0.0",
+    "figlet": "^1.7.0",
+    "fs-extra": "^11.1.0",
+    "gradient-string": "^2.0.0",
+    "inquirer": "^9.2.0",
+    "node-fetch": "^3.3.0",
+    "ora": "^7.0.0",
+    "semver": "^7.5.0",
+    "yaml": "^2.3.0"
+  },
+  "devDependencies": {
+    "@types/figlet": "^1.5.0",
+    "@types/fs-extra": "^11.0.0",
+    "@types/inquirer": "^9.0.0",
+    "@types/node": "^20.19.17",
+    "jest": "^29.0.0",
+    "tsup": "^8.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  },
+  "files": [
+    "dist",
+    "templates",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chittyos/cli.git"
+  },
+  "homepage": "https://chitty.cc/cli",
+  "funding": {
+    "type": "individual",
+    "url": "https://github.com/sponsors/chittyos"
+  }
+}

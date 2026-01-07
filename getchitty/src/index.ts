@@ -1,9 +1,10 @@
 /**
  * GetChitty Discovery & Onboarding - get.chitty.cc
- * Smart discovery and recommendations for ChittyOS services
+ * Smart discovery and NL gateway for ChittyOS services
  *
  * Patterns:
  *   get.chitty.cc/                   -> onboarding wizard
+ *   get.chitty.cc/ask                -> NL query endpoint (POST)
  *   get.chitty.cc/recommend?need=X   -> get recommendations
  *   get.chitty.cc/discover           -> browse all services
  *   get.chitty.cc/onboard/{service}  -> guided setup for service
@@ -12,6 +13,7 @@
 
 import { listServices, getService, getPackageMetadata, corsHeaders } from '@chittyos/core'
 import type { ServiceRecord, DiscoveryResult } from '@chittyos/core'
+import { classifyIntent, handleIntent } from './intent'
 
 interface Env {}
 
@@ -71,48 +73,147 @@ function generateWizardHTML(): string {
 <head>
   <title>Get Started with ChittyOS</title>
   <style>
-    body { font-family: system-ui; max-width: 600px; margin: 0 auto; padding: 2rem; }
-    h1 { color: #333; }
-    .search { width: 100%; padding: 1rem; font-size: 1.1rem; border: 2px solid #ddd; border-radius: 8px; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui; max-width: 700px; margin: 0 auto; padding: 2rem; background: #fafafa; }
+    h1 { color: #333; margin-bottom: 0.5rem; }
+    .subtitle { color: #666; margin-bottom: 2rem; }
+    .tabs { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+    .tab { padding: 0.5rem 1rem; border: none; background: #eee; border-radius: 6px; cursor: pointer; font-size: 0.9rem; }
+    .tab.active { background: #0066cc; color: white; }
+    .search-container { position: relative; }
+    .search { width: 100%; padding: 1rem 3rem 1rem 1rem; font-size: 1.1rem; border: 2px solid #ddd; border-radius: 8px; background: white; }
     .search:focus { outline: none; border-color: #0066cc; }
-    .results { margin-top: 2rem; }
-    .result { padding: 1rem; border: 1px solid #eee; border-radius: 8px; margin: 0.5rem 0; }
-    .result:hover { background: #f9f9f9; }
+    .search-btn { position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); padding: 0.5rem 1rem; background: #0066cc; color: white; border: none; border-radius: 6px; cursor: pointer; }
+    .search-btn:hover { background: #0055aa; }
+    .results { margin-top: 1.5rem; }
+    .result { padding: 1rem; border: 1px solid #e0e0e0; border-radius: 8px; margin: 0.5rem 0; background: white; }
+    .result:hover { border-color: #0066cc; }
     .result h3 { margin: 0 0 0.5rem 0; }
     .result p { margin: 0; color: #666; }
+    .result .meta { font-size: 0.85rem; color: #888; margin-top: 0.5rem; }
+    .answer { padding: 1.5rem; background: white; border: 1px solid #e0e0e0; border-radius: 8px; margin: 1rem 0; }
+    .answer h3 { margin: 0 0 1rem 0; color: #333; }
+    .answer p { margin: 0.5rem 0; line-height: 1.6; }
+    .answer pre { background: #f4f4f4; padding: 1rem; border-radius: 6px; overflow-x: auto; }
+    .answer code { font-family: 'SF Mono', Monaco, monospace; font-size: 0.9rem; }
+    .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .action { padding: 0.5rem 1rem; background: #0066cc; color: white; text-decoration: none; border-radius: 6px; font-size: 0.9rem; }
+    .action:hover { background: #0055aa; }
     .confidence { font-size: 0.8rem; color: #888; }
     a { color: #0066cc; }
-    .links { margin-top: 2rem; }
-    .links a { display: inline-block; margin-right: 1rem; }
+    .links { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #eee; }
+    .links a { display: inline-block; margin-right: 1.5rem; color: #666; }
+    .links a:hover { color: #0066cc; }
+    .intent-badge { display: inline-block; padding: 0.2rem 0.5rem; background: #e8f4fd; color: #0066cc; border-radius: 4px; font-size: 0.75rem; margin-left: 0.5rem; }
+    .loading { text-align: center; padding: 2rem; color: #666; }
   </style>
 </head>
 <body>
-  <h1>Get Started with ChittyOS</h1>
-  <p>What do you need help with?</p>
-  <input type="text" class="search" placeholder="e.g., authentication, identity, evidence tracking..." id="search">
+  <h1>ChittyOS Gateway</h1>
+  <p class="subtitle">Ask questions or search for services</p>
+
+  <div class="tabs">
+    <button class="tab active" data-mode="ask">Ask a Question</button>
+    <button class="tab" data-mode="search">Keyword Search</button>
+  </div>
+
+  <div class="search-container">
+    <input type="text" class="search" placeholder="e.g., How do I install chittyauth?" id="search">
+    <button class="search-btn" id="submit">Ask</button>
+  </div>
+
   <div class="results" id="results"></div>
+
   <div class="links">
     <a href="/discover">Browse All Services</a>
     <a href="https://docs.chitty.cc">Documentation</a>
+    <a href="https://git.chitty.cc">Package Registry</a>
   </div>
+
   <script>
     const search = document.getElementById('search');
     const results = document.getElementById('results');
+    const submitBtn = document.getElementById('submit');
+    const tabs = document.querySelectorAll('.tab');
+    let mode = 'ask';
     let timeout;
-    search.addEventListener('input', () => {
-      clearTimeout(timeout);
-      timeout = setTimeout(async () => {
-        if (!search.value.trim()) { results.innerHTML = ''; return; }
-        const res = await fetch('/recommend?need=' + encodeURIComponent(search.value));
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        mode = tab.dataset.mode;
+        search.placeholder = mode === 'ask'
+          ? 'e.g., How do I install chittyauth?'
+          : 'e.g., authentication, identity, evidence...';
+        submitBtn.textContent = mode === 'ask' ? 'Ask' : 'Search';
+        results.innerHTML = '';
+      });
+    });
+
+    async function doSearch() {
+      const query = search.value.trim();
+      if (!query) { results.innerHTML = ''; return; }
+
+      results.innerHTML = '<div class="loading">Thinking...</div>';
+
+      if (mode === 'ask') {
+        const res = await fetch('/ask?q=' + encodeURIComponent(query));
+        const data = await res.json();
+
+        let html = '<div class="answer">';
+        html += '<h3>Answer <span class="intent-badge">' + data.intent.category + '</span></h3>';
+        html += '<div>' + formatMarkdown(data.answer) + '</div>';
+
+        if (data.services && data.services.length > 0) {
+          html += '<div style="margin-top: 1rem;">';
+          data.services.forEach(s => {
+            html += '<div class="result"><h3><a href="/onboard/' + s.service_name + '">' + s.service_name + '</a></h3>';
+            html += '<p>' + s.category + ' - ' + s.status + '</p></div>';
+          });
+          html += '</div>';
+        }
+
+        if (data.actions && data.actions.length > 0) {
+          html += '<div class="actions">';
+          data.actions.forEach(a => {
+            html += '<a class="action" href="' + a.url + '">' + a.label + '</a>';
+          });
+          html += '</div>';
+        }
+        html += '</div>';
+        results.innerHTML = html;
+      } else {
+        const res = await fetch('/recommend?need=' + encodeURIComponent(query));
         const data = await res.json();
         results.innerHTML = data.recommendations.map(r => \`
           <div class="result">
             <h3><a href="/onboard/\${r.service}">\${r.service}</a></h3>
             <p>\${r.reason}</p>
-            <span class="confidence">Confidence: \${Math.round(r.confidence * 100)}%</span>
+            <div class="meta">Confidence: \${Math.round(r.confidence * 100)}%</div>
           </div>
         \`).join('') || '<p>No matches found. <a href="/discover">Browse all services</a></p>';
-      }, 300);
+      }
+    }
+
+    function formatMarkdown(text) {
+      return text
+        .replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>')
+        .replace(/\\\`\\\`\\\`(\\w*)\\n([\\s\\S]*?)\\\`\\\`\\\`/g, '<pre><code>$2</code></pre>')
+        .replace(/\\\`([^\\\`]+)\\\`/g, '<code>$1</code>')
+        .replace(/\\n/g, '<br>');
+    }
+
+    submitBtn.addEventListener('click', doSearch);
+    search.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') doSearch();
+    });
+
+    // Debounced input for keyword mode
+    search.addEventListener('input', () => {
+      if (mode !== 'search') return;
+      clearTimeout(timeout);
+      timeout = setTimeout(doSearch, 400);
     });
   </script>
 </body>
@@ -189,7 +290,37 @@ export default {
     }
 
     if (url.pathname === '/health') {
-      return Response.json({ status: 'ok', service: 'getchitty' })
+      return Response.json({ status: 'ok', service: 'getchitty', features: ['nl-gateway', 'discovery', 'onboarding'] })
+    }
+
+    // Natural Language Query endpoint
+    if (url.pathname === '/ask') {
+      if (request.method === 'GET') {
+        const query = url.searchParams.get('q')
+        if (!query) {
+          return Response.json({ error: 'Missing "q" parameter. Use: /ask?q=your+question' }, { status: 400 })
+        }
+        const intent = classifyIntent(query)
+        const response = await handleIntent(intent)
+        return Response.json(response, { headers: corsHeaders(request.headers.get('Origin') || undefined) })
+      }
+
+      if (request.method === 'POST') {
+        try {
+          const body = await request.json() as { query?: string; q?: string }
+          const query = body.query || body.q
+          if (!query) {
+            return Response.json({ error: 'Missing "query" or "q" in request body' }, { status: 400 })
+          }
+          const intent = classifyIntent(query)
+          const response = await handleIntent(intent)
+          return Response.json(response, { headers: corsHeaders(request.headers.get('Origin') || undefined) })
+        } catch {
+          return Response.json({ error: 'Invalid JSON body' }, { status: 400 })
+        }
+      }
+
+      return Response.json({ error: 'Method not allowed. Use GET or POST.' }, { status: 405 })
     }
 
     // Wizard / home
