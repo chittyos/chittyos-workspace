@@ -157,6 +157,19 @@ program
     await devCommand(options);
   });
 
+program
+  .command('mcp')
+  .description('Manage MCP servers for Claude Desktop')
+  .option('-i, --install', 'Install ChittyOS MCP servers to Claude Desktop')
+  .option('-u, --uninstall', 'Remove ChittyOS MCP servers from Claude Desktop')
+  .option('-l, --list', 'List available ChittyOS MCP servers')
+  .option('-s, --status', 'Check MCP server status')
+  .option('--json', 'Output in JSON format')
+  .action(async (options) => {
+    const { mcpCommand } = await import('./commands/mcp');
+    await mcpCommand(options);
+  });
+
 // Global error handling
 process.on('uncaughtException', (error) => {
   console.error(chalk.red('❌ Uncaught Exception:'), error.message);
