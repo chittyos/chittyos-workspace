@@ -1,0 +1,35 @@
+{
+  "name": "@chittyos/evidence",
+  "version": "0.1.0",
+  "description": "Legal evidence processing platform with Cloudflare Workflows",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:staging": "wrangler deploy --env staging",
+    "db:migrate": "wrangler d1 execute chitty-evidence-db --file=./migrations/0001_initial.sql",
+    "db:migrate:local": "wrangler d1 execute chitty-evidence-db --local --file=./migrations/0001_initial.sql",
+    "db:studio": "wrangler d1 studio chitty-evidence-db",
+    "preprocess": "./scripts/preprocess.sh",
+    "bulk-upload": "npx tsx scripts/bulk-upload.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "hono": "^4.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250101.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0",
+    "wrangler": "^3.100.0",
+    "vitest": "^1.0.0",
+    "tsx": "^4.0.0",
+    "eslint": "^8.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

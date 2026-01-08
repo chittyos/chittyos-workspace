@@ -1,0 +1,80 @@
+{
+  "database_id": "0036bf44-6768-43d9-b911-aa951fc6289a",
+  "services": [
+    {
+      "name": "getchitty",
+      "category": "Platform",
+      "status": "Live",
+      "domain": "https://get.chitty.cc",
+      "description": "NL Gateway + Discovery - Natural language queries, intent classification, service recommendations",
+      "github": "https://github.com/CHITTYOS/getchitty",
+      "features": ["nl-gateway", "discovery", "onboarding", "intent-classification"],
+      "endpoints": ["/health", "/ask", "/discover", "/recommend", "/onboard/{service}"],
+      "deployed": "2026-01-07",
+      "worker": "getchitty-production"
+    },
+    {
+      "name": "chittyapi",
+      "category": "Platform",
+      "status": "Live",
+      "domain": "https://api.chitty.cc",
+      "description": "API Proxy Gateway - Routes requests to {service}.chitty.cc/api/*",
+      "github": "https://github.com/CHITTYOS/chittyapi",
+      "features": ["api-proxy", "route-caching", "cors"],
+      "endpoints": ["/health", "/routes", "/{service}/*"],
+      "deployed": "2026-01-07",
+      "worker": "chittyapi-production",
+      "routes": 24
+    },
+    {
+      "name": "chittymcp",
+      "category": "Platform",
+      "status": "Live",
+      "domain": "https://mcp.chitty.cc",
+      "description": "MCP Tool Aggregator - Aggregates MCP tools from all services",
+      "github": "https://github.com/CHITTYOS/chittymcp",
+      "features": ["mcp-aggregation", "tool-discovery"],
+      "endpoints": ["/health", "/tools", "/services", "/{service}/*"],
+      "deployed": "2026-01-07",
+      "worker": "chittymcp-production"
+    },
+    {
+      "name": "chittydocs",
+      "category": "Platform",
+      "status": "Live",
+      "domain": "https://docs.chitty.cc",
+      "description": "Documentation Index - Service documentation gateway",
+      "github": "https://github.com/CHITTYOS/chittydocs",
+      "features": ["docs-index", "doc-proxy", "categorization"],
+      "endpoints": ["/health", "/", "/index.json", "/{service}/*"],
+      "deployed": "2026-01-07",
+      "worker": "chittydocs-production"
+    },
+    {
+      "name": "gitchitty",
+      "category": "Platform",
+      "status": "Live",
+      "domain": "https://git.chitty.cc",
+      "description": "Package Registry - Install scripts and package metadata",
+      "github": "https://github.com/CHITTYOS/gitchitty",
+      "features": ["package-registry", "install-scripts", "r2-storage"],
+      "endpoints": ["/health", "/{package}", "/{package}.json", "/{package}/install"],
+      "deployed": "2026-01-07",
+      "worker": "gitchitty-production"
+    },
+    {
+      "name": "chittyhelper",
+      "category": "Application",
+      "status": "Live",
+      "domain": "https://agent.chitty.cc/helper/",
+      "description": "Self-evolving query agent with D1 learning",
+      "github": "https://github.com/CHITTYOS/chittyhelper",
+      "features": ["self-learning", "query-classification", "registry-sync"],
+      "endpoints": ["/helper/health", "/helper/query", "/helper/learn/patterns", "/helper/sync"],
+      "deployed": "2026-01-07",
+      "worker": "chittyhelper-production",
+      "bindings": ["KV:Registry", "KV:Canon", "D1:Evolution"]
+    }
+  ],
+  "registration_script": "Use with: curl -X POST https://api.notion.com/v1/pages -H 'Authorization: Bearer $NOTION_TOKEN' -H 'Notion-Version: 2022-06-28' -H 'Content-Type: application/json' -d @payload.json"
+}

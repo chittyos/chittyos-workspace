@@ -1,0 +1,8 @@
+# Example environment variables for local development
+# Copy this file to .dev.vars and fill in your values
+
+# Check interval in milliseconds (default: 60000 = 1 minute)
+CHECK_INTERVAL_MS=60000
+
+# History retention in days (default: 7 days)
+HISTORY_RETENTION_DAYS=7

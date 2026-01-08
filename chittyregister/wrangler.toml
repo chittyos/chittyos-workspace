@@ -1,0 +1,27 @@
+name = "chittyregister"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+account_id = "0bc21e3a5a9de1a4cc843be9c3e98121"
+
+# KV for service registration data
+[[kv_namespaces]]
+binding = "REGISTRY_KV"
+id = "chitty-registry-kv"
+
+[env.production]
+routes = [
+  { pattern = "register.chitty.cc/*", zone_name = "chitty.cc" }
+]
+
+[[env.production.kv_namespaces]]
+binding = "REGISTRY_KV"
+id = "chitty-registry-kv-prod"
+
+[env.staging]
+routes = [
+  { pattern = "register-staging.chitty.cc/*", zone_name = "chitty.cc" }
+]
+
+[[env.staging.kv_namespaces]]
+binding = "REGISTRY_KV"
+id = "chitty-registry-kv-staging"

@@ -1,0 +1,126 @@
+name = "chitty-evidence-platform"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# ============================================
+# WORKFLOW CONFIGURATION
+# ============================================
+[[workflows]]
+name = "DOCUMENT_WORKFLOW"
+class_name = "DocumentProcessingWorkflow"
+binding = "DOCUMENT_WORKFLOW"
+
+# ============================================
+# DURABLE OBJECTS
+# ============================================
+[durable_objects]
+bindings = [
+  { name = "DUPLICATE_HUNTER", class_name = "DuplicateHunterDO" },
+  { name = "ACCURACY_GUARDIAN", class_name = "AccuracyGuardianDO" }
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["DuplicateHunterDO", "AccuracyGuardianDO"]
+
+# ============================================
+# D1 DATABASE
+# ============================================
+[[d1_databases]]
+binding = "DB"
+database_name = "chitty-evidence-db"
+database_id = "YOUR_D1_DATABASE_ID"
+
+# ============================================
+# R2 STORAGE
+# ============================================
+[[r2_buckets]]
+binding = "DOCUMENTS"
+bucket_name = "chitty-evidence-documents"
+
+[[r2_buckets]]
+binding = "PROCESSED"
+bucket_name = "chitty-evidence-processed"
+
+# ============================================
+# VECTORIZE INDEX
+# ============================================
+[[vectorize]]
+binding = "VECTORIZE"
+index_name = "chitty-evidence-embeddings"
+
+# ============================================
+# WORKERS AI
+# ============================================
+[ai]
+binding = "AI"
+
+# ============================================
+# QUEUES (for batch operations)
+# ============================================
+[[queues.producers]]
+binding = "REPROCESS_QUEUE"
+queue = "document-reprocess"
+
+[[queues.producers]]
+binding = "CORRECTION_QUEUE"
+queue = "correction-apply"
+
+[[queues.consumers]]
+queue = "document-reprocess"
+max_batch_size = 10
+max_retries = 3
+
+[[queues.consumers]]
+queue = "correction-apply"
+max_batch_size = 25
+max_retries = 3
+
+# ============================================
+# CRON TRIGGERS
+# ============================================
+[triggers]
+crons = [
+  "0 * * * *",      # Hourly: Duplicate Hunter incremental scan
+  "*/15 * * * *",   # Every 15 min: Process approved corrections
+  "0 3 * * *",      # Daily 3am: Scan for known error patterns
+  "0 4 * * *",      # Daily 4am: Check expiring authorities
+  "0 0 * * 0"       # Weekly Sunday midnight: Full corpus duplicate scan
+]
+
+# ============================================
+# ENVIRONMENT VARIABLES
+# ============================================
+[vars]
+ENVIRONMENT = "production"
+AUTO_RESOLVE_CONFIDENCE_THRESHOLD = "0.95"
+DUPLICATE_AUTO_MERGE_THRESHOLD = "0.98"
+MAX_OCR_TIMEOUT_MS = "300000"
+
+# ============================================
+# LOCAL DEVELOPMENT
+# ============================================
+[dev]
+port = 8787
+local_protocol = "http"
+
+# Development-specific overrides
+[env.dev.vars]
+ENVIRONMENT = "development"
+AUTO_RESOLVE_CONFIDENCE_THRESHOLD = "0.99"
+
+# ============================================
+# STAGING
+# ============================================
+[env.staging]
+name = "chitty-evidence-platform-staging"
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
+
+# ============================================
+# LIMITS
+# ============================================
+[limits]
+cpu_ms = 300000  # 5 minutes for OCR-heavy processing

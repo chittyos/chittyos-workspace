@@ -1,0 +1,20 @@
+{
+  "name": "myawesomeservice",
+  "version": "1.0.0",
+  "type": "worker",
+  "category": "Application",
+  "description": "An example service demonstrating ChittyRegister registration process",
+  "owner": "johndoe",
+  "endpoints": {
+    "api": "https://myawesomeservice.chitty.cc/api",
+    "docs": "https://myawesomeservice.chitty.cc/docs",
+    "health": "https://myawesomeservice.chitty.cc/health"
+  },
+  "metadata": {
+    "repository": "https://github.com/CHITTYOS/myawesomeservice",
+    "homepage": "https://myawesomeservice.chitty.cc",
+    "license": "MIT",
+    "tags": ["utility", "integration", "automation"],
+    "dependencies": ["@chittyos/core", "@chittyos/auth"]
+  }
+}

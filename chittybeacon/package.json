@@ -1,0 +1,26 @@
+{
+  "name": "chittybeacon",
+  "version": "1.0.0",
+  "description": "Health monitoring service for Chitty ecosystem",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "test": "vitest"
+  },
+  "keywords": [
+    "cloudflare",
+    "worker",
+    "monitoring",
+    "health-check"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241127.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.0.4",
+    "wrangler": "^3.78.12"
+  }
+}
