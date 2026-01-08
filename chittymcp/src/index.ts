@@ -35,18 +35,27 @@ async function refreshRoutes(env: Env): Promise<void> {
     lastRefresh = now
 
     // Aggregate tools from all services
+    // Try multiple paths: /mcp/tools/list, /tools/list, /tools
     toolsCache = []
+    const toolPaths = ['/mcp/tools/list', '/tools/list', '/tools']
+
     for (const [service, route] of routeCache) {
-      try {
-        const res = await fetch(`${route.target}/tools`)
-        if (res.ok) {
-          const data = await res.json() as { tools?: MCPTool[] }
-          if (data.tools) {
-            toolsCache.push(...data.tools.map(t => ({ ...t, service })))
+      for (const toolPath of toolPaths) {
+        try {
+          const baseUrl = route.target.replace(/\/mcp\/?$/, '')
+          const res = await fetch(`${baseUrl}${toolPath}`, {
+            headers: { 'Accept': 'application/json' }
+          })
+          if (res.ok) {
+            const data = await res.json() as { tools?: MCPTool[] }
+            if (data.tools && data.tools.length > 0) {
+              toolsCache.push(...data.tools.map(t => ({ ...t, service })))
+              break // Found tools, move to next service
+            }
           }
+        } catch {
+          // Try next path
         }
-      } catch {
-        // Skip unavailable services
       }
     }
   } catch (e) {
