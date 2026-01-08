@@ -303,7 +303,7 @@ export class KnowledgeGapsService {
     let authoritiesUpdated = 0;
 
     // Update each occurrence
-    for (const occ of occurrences.results as GapOccurrence[]) {
+    for (const occ of occurrences.results as unknown as GapOccurrence[]) {
       const doc = await this.env.DB.prepare(
         `SELECT metadata FROM documents WHERE id = ?`
       )
@@ -456,7 +456,7 @@ export class KnowledgeGapsService {
 
     const resolvable: ResolvableGap[] = [];
 
-    for (const gap of openGaps.results as KnowledgeGap[]) {
+    for (const gap of openGaps.results as unknown as KnowledgeGap[]) {
       // Check if this document might resolve the gap
       const match = await this.checkGapMatch(gap, documentContent);
 
@@ -491,7 +491,7 @@ If yes, respond with JSON: {"found": true, "value": "the complete value", "confi
 If no, respond with JSON: {"found": false, "confidence": 0.0}`;
 
     try {
-      const response = await this.env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
+      const response = await this.env.AI.run('@cf/meta/llama-3.1-8b-instruct' as any, {
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 200,
       });
@@ -534,7 +534,7 @@ If no, respond with JSON: {"found": false, "confidence": 0.0}`;
     params.push(limit);
 
     const result = await this.env.DB.prepare(query).bind(...params).all();
-    return result.results as KnowledgeGap[];
+    return result.results as unknown as KnowledgeGap[];
   }
 
   /**
@@ -567,8 +567,8 @@ If no, respond with JSON: {"found": false, "confidence": 0.0}`;
 
     return {
       gap,
-      occurrences: occurrences.results as GapOccurrence[],
-      candidates: candidates.results as GapCandidate[],
+      occurrences: occurrences.results as unknown as GapOccurrence[],
+      candidates: candidates.results as unknown as GapCandidate[],
     };
   }
 

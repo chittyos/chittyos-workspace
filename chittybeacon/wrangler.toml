@@ -10,7 +10,7 @@ routes = [
 
 # KV namespace for storing health check history
 kv_namespaces = [
-  { binding = "HEALTH_HISTORY", id = "your_kv_namespace_id", preview_id = "your_preview_kv_namespace_id" }
+  { binding = "HEALTH_HISTORY", id = "2a04e763d6764aa9ae8ef731596d313b", preview_id = "37df6326628349129d11cab8066021fe" }
 ]
 
 # D1 database (optional, uncomment if using D1 instead of KV)

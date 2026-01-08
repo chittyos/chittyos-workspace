@@ -3,25 +3,12 @@ main = "src/index.ts"
 compatibility_date = "2024-01-01"
 account_id = "0bc21e3a5a9de1a4cc843be9c3e98121"
 
-# KV for service registration data
-[[kv_namespaces]]
-binding = "REGISTRY_KV"
-id = "chitty-registry-kv"
-
-[env.production]
+# Routes for register.chitty.cc
 routes = [
   { pattern = "register.chitty.cc/*", zone_name = "chitty.cc" }
 ]
 
-[[env.production.kv_namespaces]]
-binding = "REGISTRY_KV"
-id = "chitty-registry-kv-prod"
-
-[env.staging]
-routes = [
-  { pattern = "register-staging.chitty.cc/*", zone_name = "chitty.cc" }
+# KV for service registration data
+kv_namespaces = [
+  { binding = "REGISTRY_KV", id = "5a2e4df3d7b34454a49de87244b3ae84", preview_id = "2abc07eea8b244258095739ffd709df9" }
 ]
-
-[[env.staging.kv_namespaces]]
-binding = "REGISTRY_KV"
-id = "chitty-registry-kv-staging"

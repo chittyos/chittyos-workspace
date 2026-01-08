@@ -472,7 +472,7 @@ Respond with JSON only:
   ]
 }`;
 
-    const aiResponse = await this.env.AI.run('@cf/meta/llama-3.1-70b-instruct', {
+    const aiResponse = await this.env.AI.run('@cf/meta/llama-3.1-70b-instruct' as any, {
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 3000,
     });

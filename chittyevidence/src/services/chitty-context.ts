@@ -97,7 +97,7 @@ export interface Certification {
 export interface AccountabilityRecord {
   id: string;
   chittyId: string;
-  sessionId: string;
+  sessionId?: string;
   action: string;
   outcome: 'success' | 'failure' | 'pending' | 'disputed';
   impact: {
@@ -699,11 +699,11 @@ export class ChittyContextService {
         sessionId: r.session_id,
         action: r.action,
         outcome: r.outcome,
-        impact: safeJsonParse(r.impact, {}),
+        impact: safeJsonParse(r.impact, { documentsAffected: 0, entitiesAffected: 0, authoritiesAffected: 0 }),
         verification: safeJsonParse(r.verification, undefined),
         disputeInfo: safeJsonParse(r.dispute_info, undefined),
         timestamp: r.timestamp,
-      })),
+      })) as AccountabilityRecord[],
       stats: {
         totalActions: stats?.total || 0,
         successRate: stats?.total ? (stats.successes / stats.total) : 0,
