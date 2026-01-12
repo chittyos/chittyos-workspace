@@ -6,7 +6,7 @@
 import { WorkflowEntrypoint, WorkflowStep, WorkflowEvent } from 'cloudflare:workers';
 import { Env, WorkflowInput, ProcessingState, ExtractedDocumentData, EntityInfo, ExtractedUnknown } from '../types';
 import { generateId, inferEntityType, safeJsonParse } from '../utils';
-import { KnowledgeGapsService } from '../services/knowledge-gaps';
+import { KnowledgeGapsService } from '../services/svc-knowledgegaps';
 
 export class DocumentProcessingWorkflow extends WorkflowEntrypoint<Env, WorkflowInput> {
   async run(event: WorkflowEvent<WorkflowInput>, step: WorkflowStep) {

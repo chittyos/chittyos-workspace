@@ -3,7 +3,7 @@ packages:
   - 'chittyapi'
   - 'chittymcp'
   - 'chittydocs'
-  - 'chittyevidence'
+  - 'chittyevidence-db'
   - 'chittybeacon'
   - 'chittyregister'
   - 'gitchitty'

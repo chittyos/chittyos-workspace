@@ -6,17 +6,27 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { Env } from './types';
 import { handleUpload, handleBulkUpload, handleStatusCheck } from './workers/gatekeeper';
-import { KnowledgeGapsService } from './services/knowledge-gaps';
-import { ChittyContextService } from './services/chitty-context';
-import { authenticateRequest, hasPermission, AuthContext } from './services/chitty-connect';
+import { KnowledgeGapsService } from './services/svc-knowledgegaps';
+import { ChittyContextService } from './services/svc-chittycontext';
+import { LegalConstitutionService } from './services/svc-legalconstitution';
+import { authenticateRequest, hasPermission, AuthContext } from './services/svc-chittyconnect';
 import { generateId } from './utils';
+// Capability Framework imports
+import { createContext, isSuccess, isFailure, evaluateRolloutRules } from '@chittyos/core';
+import type { ChittyContext } from '@chittyos/core';
+import { createEvidenceCapabilities } from './capabilities';
 
 // Re-export Durable Objects and Workflow
 export { DuplicateHunterDO } from './durable-objects/duplicate-hunter';
 export { AccuracyGuardianDO } from './durable-objects/accuracy-guardian';
 export { DocumentProcessingWorkflow } from './workflows/document-processing';
 
-const app = new Hono<{ Bindings: Env }>();
+// Define context variables for Hono
+type Variables = {
+  auth: AuthContext;
+};
+
+const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 
 // ============================================
 // MIDDLEWARE
@@ -24,11 +34,61 @@ const app = new Hono<{ Bindings: Env }>();
 
 app.use('*', cors());
 
+// Response time header
 app.use('*', async (c, next) => {
   const start = Date.now();
   await next();
   const duration = Date.now() - start;
   c.header('X-Response-Time', `${duration}ms`);
+});
+
+// Authentication middleware for protected routes
+// Mutating operations require authentication
+const PROTECTED_PREFIXES = [
+  '/documents',      // Document uploads and modifications
+  '/gaps',           // Knowledge gap modifications
+  '/duplicates',     // Duplicate resolution
+  '/corrections',    // Correction rule management
+  '/chitty',         // ChittyID operations
+  '/sessions',       // Session management
+  '/provenance',     // Provenance recording
+  '/accountability', // Accountability records
+  '/legal',          // Legal operations (except reads)
+];
+
+const READ_ONLY_METHODS = ['GET', 'HEAD', 'OPTIONS'];
+
+app.use('*', async (c, next) => {
+  const path = c.req.path;
+  const method = c.req.method;
+
+  // Skip auth for health/info endpoints
+  if (path === '/' || path === '/health') {
+    return next();
+  }
+
+  // Check if this is a protected prefix
+  const isProtected = PROTECTED_PREFIXES.some(prefix => path.startsWith(prefix));
+
+  // Skip auth for read-only requests on non-protected routes
+  if (!isProtected || READ_ONLY_METHODS.includes(method)) {
+    return next();
+  }
+
+  // Authenticate the request
+  const auth = await authenticateRequest(c.req.raw, c.env);
+
+  if (!auth.authenticated) {
+    return c.json({
+      error: 'Unauthorized',
+      message: 'Valid authentication required for this operation',
+      hint: 'Provide Authorization header with Bearer token or Service credentials'
+    }, 401);
+  }
+
+  // Store auth context for route handlers
+  c.set('auth', auth);
+  await next();
 });
 
 // ============================================
@@ -103,6 +163,19 @@ app.get('/', (c) => {
         verify: 'POST /accountability/:id/verify',
         dispute: 'POST /accountability/:id/dispute',
         resolve: 'POST /accountability/:id/resolve',
+      },
+      legal: {
+        check: 'POST /legal/check',
+        constitution: 'GET /legal/constitution',
+        claimTypes: 'GET /legal/claim-types',
+        sourceRequirements: 'GET /legal/claim-types/:id/sources',
+        approvedSources: 'GET /legal/approved-sources',
+        admissibilityRules: 'GET /legal/admissibility-rules',
+        analyzeClaim: 'POST /legal/documents/:id/claims',
+        custody: 'GET /legal/documents/:id/custody',
+        addCustody: 'POST /legal/documents/:id/custody',
+        facts: 'GET /legal/cases/:caseId/facts',
+        addFact: 'POST /legal/cases/:caseId/facts',
       },
     },
   });
@@ -727,6 +800,202 @@ app.get('/provenance/:entityType/:entityId/verify', async (c) => {
 });
 
 // ============================================
+// CAPABILITY-BASED PROVENANCE (POC)
+// Demonstrates the leak-proof capability pattern
+// ============================================
+
+// Create context from request for capability invocations
+function contextFromAuth(auth: AuthContext | undefined, request: Request): ChittyContext {
+  const chittyId = auth?.chittyId || request.headers.get('X-Chitty-ID') || 'anonymous';
+  const trustScore = auth?.authenticated ? 75 : 50;
+
+  return createContext(chittyId, 'session', {
+    trustScore,
+    sessionId: request.headers.get('X-Session-ID') || crypto.randomUUID(),
+    requestId: request.headers.get('X-Request-ID') || crypto.randomUUID(),
+    metadata: {
+      isTest: request.headers.get('X-Test-Context') === 'true',
+      authMethod: auth?.authenticated ? 'authenticated' : 'anonymous',
+    },
+  });
+}
+
+// Verify provenance via capability (instrumented, traceable)
+app.get('/v2/provenance/:entityType/:entityId/verify', async (c) => {
+  const { entityType, entityId } = c.req.param();
+  const auth = c.get('auth');
+  const caps = createEvidenceCapabilities(c.env);
+  const context = contextFromAuth(auth, c.req.raw);
+
+  // Check if context can invoke this capability
+  const accessCheck = caps.provenance.verifyProvenance.canInvoke(context);
+  if (!accessCheck.allowed) {
+    return c.json({
+      error: 'Capability access denied',
+      reason: accessCheck.reason,
+      blockedBy: accessCheck.blockedBy,
+      contextGrade: context.grade,
+      requiredGrade: accessCheck.missingGrade,
+      hint: 'Upgrade context trust level or authenticate with higher privileges',
+    }, 403);
+  }
+
+  // Invoke the capability
+  const result = await caps.provenance.verifyProvenance.invoke(context, {
+    entityType,
+    entityId,
+  });
+
+  if (isFailure(result)) {
+    return c.json({
+      error: 'Capability invocation failed',
+      message: result.error,
+      errorCode: result.errorCode,
+      provenance: result.provenance,
+      recoverable: result.recoverable,
+    }, result.errorCode === 'ACCESS_DENIED' ? 403 : 500);
+  }
+
+  // Return result with provenance
+  return c.json({
+    result: result.value,
+    provenance: result.provenance,
+    metrics: caps.provenance.verifyProvenance.getMetrics(),
+  });
+});
+
+// Record provenance via capability
+app.post('/v2/provenance', async (c) => {
+  const body = await c.req.json();
+  const auth = c.get('auth');
+  const caps = createEvidenceCapabilities(c.env);
+  const context = contextFromAuth(auth, c.req.raw);
+
+  const result = await caps.provenance.recordProvenance.invoke(context, {
+    entityType: body.entityType,
+    entityId: body.entityId,
+    action: body.action,
+    previousState: body.previousState,
+    newState: body.newState,
+    sessionId: body.sessionId,
+    attestations: body.attestations,
+  });
+
+  if (isFailure(result)) {
+    return c.json({
+      error: 'Capability invocation failed',
+      message: result.error,
+      errorCode: result.errorCode,
+      provenance: result.provenance,
+    }, result.errorCode === 'ACCESS_DENIED' ? 403 : 500);
+  }
+
+  return c.json({
+    result: result.value,
+    provenance: result.provenance,
+  }, 201);
+});
+
+// Certify provenance - demonstrates REQUIRED upstream provenance
+app.post('/v2/provenance/:entityType/:entityId/certify', async (c) => {
+  const { entityType, entityId } = c.req.param();
+  const body = await c.req.json();
+  const auth = c.get('auth');
+  const caps = createEvidenceCapabilities(c.env);
+  const context = contextFromAuth(auth, c.req.raw);
+
+  // First, verify the provenance chain (this produces required upstream result)
+  const verifyResult = await caps.provenance.verifyProvenance.invoke(context, {
+    entityType,
+    entityId,
+  });
+
+  if (isFailure(verifyResult)) {
+    return c.json({
+      error: 'Cannot certify: verification failed',
+      verificationError: verifyResult.error,
+      provenance: verifyResult.provenance,
+    }, 400);
+  }
+
+  // Now certify - note: the input REQUIRES CapabilityResult, not raw data
+  // This is the key anti-bypass mechanism
+  const certifyResult = await caps.provenance.certifyProvenance.invoke(
+    context,
+    {
+      verificationResult: verifyResult,  // Must be CapabilityResult, not raw data
+      certifierNotes: body.notes,
+    },
+    [verifyResult.provenance]  // Parent provenance chain
+  );
+
+  if (isFailure(certifyResult)) {
+    return c.json({
+      error: 'Certification failed',
+      message: certifyResult.error,
+      errorCode: certifyResult.errorCode,
+      provenance: certifyResult.provenance,
+    }, certifyResult.errorCode === 'ACCESS_DENIED' ? 403 : 400);
+  }
+
+  return c.json({
+    certification: certifyResult.value,
+    provenance: certifyResult.provenance,
+    upstreamProvenance: [verifyResult.provenance],
+  }, 201);
+});
+
+// Get capability metrics (persisted)
+app.get('/v2/capabilities/metrics', async (c) => {
+  const caps = createEvidenceCapabilities(c.env);
+
+  // Get persisted metrics from D1
+  const [recordProvenance, getProvenanceChain, verifyProvenance, certifyProvenance] = await Promise.all([
+    caps.provenance.recordProvenance.getPersistedMetrics(),
+    caps.provenance.getProvenanceChain.getPersistedMetrics(),
+    caps.provenance.verifyProvenance.getPersistedMetrics(),
+    caps.provenance.certifyProvenance.getPersistedMetrics(),
+  ]);
+
+  return c.json({
+    provenance: {
+      recordProvenance,
+      getProvenanceChain,
+      verifyProvenance,
+      certifyProvenance,
+    },
+  });
+});
+
+// List available capabilities and their status
+app.get('/v2/capabilities', async (c) => {
+  const caps = createEvidenceCapabilities(c.env);
+
+  const describe = (cap: any) => ({
+    id: cap.definition.id,
+    name: cap.definition.name,
+    version: cap.definition.version,
+    status: cap.definition.status,
+    requiredGrade: cap.definition.requiredContextGrade,
+    description: cap.definition.description,
+    dependencies: cap.definition.dependencies || [],
+    tags: cap.definition.tags || [],
+  });
+
+  return c.json({
+    domain: 'evidence',
+    capabilities: {
+      provenance: {
+        recordProvenance: describe(caps.provenance.recordProvenance),
+        getProvenanceChain: describe(caps.provenance.getProvenanceChain),
+        verifyProvenance: describe(caps.provenance.verifyProvenance),
+        certifyProvenance: describe(caps.provenance.certifyProvenance),
+      },
+    },
+  });
+});
+
+// ============================================
 // EXPERTISE TRACKING
 // ============================================
 
@@ -833,6 +1102,197 @@ app.get('/chitty/:id/accountability', async (c) => {
 });
 
 // ============================================
+// LEGAL CONSTITUTION ENFORCER (CORE)
+// ============================================
+
+// Check admissibility (CORE gatekeeper)
+app.post('/legal/check', async (c) => {
+  const body = await c.req.json();
+  const legalService = new LegalConstitutionService(c.env);
+
+  const result = await legalService.checkAdmissibility({
+    documentId: body.documentId,
+    claimTypeId: body.claimTypeId,
+    requestorChittyId: body.requestorChittyId,
+  });
+
+  // Return both structured result and CORE-formatted response
+  return c.json({
+    ...result,
+    coreResponse: legalService.formatCoreResponse(result),
+  });
+});
+
+// Get Legal Research Constitution
+app.get('/legal/constitution', async (c) => {
+  const legalService = new LegalConstitutionService(c.env);
+  const constitution = await legalService.getConstitution();
+  return c.json(constitution);
+});
+
+// Get claim types
+app.get('/legal/claim-types', async (c) => {
+  const legalService = new LegalConstitutionService(c.env);
+  const claimTypes = await legalService.getClaimTypes();
+  return c.json(claimTypes);
+});
+
+// Get source requirements for a claim type
+app.get('/legal/claim-types/:id/sources', async (c) => {
+  const { id } = c.req.param();
+  const legalService = new LegalConstitutionService(c.env);
+  const requirements = await legalService.getSourceRequirements(id);
+  return c.json(requirements);
+});
+
+// Get approved sources
+app.get('/legal/approved-sources', async (c) => {
+  const legalService = new LegalConstitutionService(c.env);
+  const sources = await legalService.getApprovedSources();
+  return c.json(sources);
+});
+
+// Get admissibility rules
+app.get('/legal/admissibility-rules', async (c) => {
+  const legalService = new LegalConstitutionService(c.env);
+  const rules = await legalService.getAdmissibilityRules();
+  return c.json(rules);
+});
+
+// Analyze document claims
+app.post('/legal/documents/:id/claims', async (c) => {
+  const { id } = c.req.param();
+  const body = await c.req.json();
+  const legalService = new LegalConstitutionService(c.env);
+
+  const analysis = await legalService.analyzeDocumentClaims(
+    id,
+    body.claimTypeId,
+    body.claimText
+  );
+
+  return c.json(analysis);
+});
+
+// Get chain of custody for a document
+app.get('/legal/documents/:id/custody', async (c) => {
+  const { id } = c.req.param();
+  const legalService = new LegalConstitutionService(c.env);
+  const custody = await legalService.getCustodyChain(id);
+  return c.json(custody);
+});
+
+// Add custody entry
+app.post('/legal/documents/:id/custody', async (c) => {
+  const { id } = c.req.param();
+  const body = await c.req.json();
+  const legalService = new LegalConstitutionService(c.env);
+
+  const entryId = await legalService.addCustodyEntry({
+    documentId: id,
+    custodian: body.custodian,
+    custodyAction: body.custodyAction,
+    custodyDate: body.custodyDate || new Date().toISOString(),
+    location: body.location,
+    notes: body.notes,
+    verificationMethod: body.verificationMethod,
+  });
+
+  return c.json({ id: entryId }, { status: 201 });
+});
+
+// Get statement of facts for a case
+app.get('/legal/cases/:caseId/facts', async (c) => {
+  const { caseId } = c.req.param();
+  const legalService = new LegalConstitutionService(c.env);
+  const facts = await legalService.getStatementOfFacts(caseId);
+  return c.json(facts);
+});
+
+// Add fact entry to statement of facts
+app.post('/legal/cases/:caseId/facts', async (c) => {
+  const { caseId } = c.req.param();
+  const body = await c.req.json();
+  const legalService = new LegalConstitutionService(c.env);
+
+  const factId = await legalService.addFactEntry({
+    caseId,
+    factNumber: body.factNumber,
+    factDate: body.factDate,
+    factText: body.factText,
+    exhibitReference: body.exhibitReference,
+    documentId: body.documentId,
+    sourceQuote: body.sourceQuote,
+  });
+
+  return c.json({ id: factId }, { status: 201 });
+});
+
+// ============================================
+// CAPABILITY ROLLOUT ENGINE
+// ============================================
+
+async function runCapabilityRolloutEngine(env: Env): Promise<void> {
+  console.log('[RolloutEngine] Starting capability rollout evaluation');
+
+  const caps = createEvidenceCapabilities(env);
+  const store = caps.provenance.store;
+
+  // List of capabilities to evaluate
+  const capabilityIds = [
+    'evidence.provenance.record',
+    'evidence.provenance.getChain',
+    'evidence.provenance.verify',
+    'evidence.provenance.certify',
+  ];
+
+  for (const capabilityId of capabilityIds) {
+    try {
+      // Get current definition
+      const def = await store.getDefinition(capabilityId);
+      if (!def) {
+        console.log(`[RolloutEngine] No definition for ${capabilityId}, skipping`);
+        continue;
+      }
+
+      // Calculate fresh metrics
+      const metrics = await store.calculateMetrics(capabilityId);
+
+      // Persist metrics for caching
+      await store.persistMetrics(metrics);
+
+      // Evaluate rollout rules
+      const evaluation = evaluateRolloutRules(def, metrics);
+
+      if (evaluation.shouldTransition && evaluation.newStatus) {
+        console.log(`[RolloutEngine] ${capabilityId}: ${def.status} -> ${evaluation.newStatus} (${evaluation.triggeredRule?.gate})`);
+
+        // Record the transition
+        await store.updateStatus(
+          capabilityId,
+          evaluation.newStatus,
+          `Rollout rule triggered: ${evaluation.triggeredRule?.gate} threshold ${evaluation.triggeredRule?.threshold}`,
+          'rollout_rule',
+          evaluation.triggeredRule
+        );
+      } else {
+        console.log(`[RolloutEngine] ${capabilityId}: no transition (${metrics.totalInvocations} invocations, ${(metrics.successRate * 100).toFixed(1)}% success)`);
+      }
+    } catch (err) {
+      console.error(`[RolloutEngine] Error evaluating ${capabilityId}:`, err);
+    }
+  }
+
+  // Cleanup old invocations
+  const pruned = await store.pruneOldInvocations(90);
+  if (pruned > 0) {
+    console.log(`[RolloutEngine] Pruned ${pruned} old invocations`);
+  }
+
+  console.log('[RolloutEngine] Completed');
+}
+
+// ============================================
 // CRON HANDLER
 // ============================================
 
@@ -841,10 +1301,12 @@ async function handleCron(event: ScheduledEvent, env: Env): Promise<void> {
 
   switch (event.cron) {
     case '0 * * * *':
-      // Hourly: Duplicate Hunter incremental scan
+      // Hourly: Duplicate Hunter incremental scan + Capability rollout engine
       const hunterId = env.DUPLICATE_HUNTER.idFromName('global');
       const hunter = env.DUPLICATE_HUNTER.get(hunterId);
       await hunter.fetch(new Request('http://internal/scan/incremental'));
+      // Run capability rollout engine
+      await runCapabilityRolloutEngine(env);
       break;
 
     case '*/15 * * * *':

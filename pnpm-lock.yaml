@@ -71,8 +71,11 @@ importers:
         specifier: ^3.0.0
         version: 3.114.16(@cloudflare/workers-types@4.20260103.0)
 
-  chittyevidence:
+  chittyevidence-db:
     dependencies:
+      '@chittyos/core':
+        specifier: workspace:*
+        version: link:../chittycore
       hono:
         specifier: ^4.0.0
         version: 4.11.3

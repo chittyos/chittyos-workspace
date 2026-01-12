@@ -5,10 +5,27 @@
 
 import { Env } from '../types';
 import { generateId, safeJsonParse } from '../utils';
+import type {
+  ChittyContext,
+  ContextType,
+  ContextStatus,
+  ContextGrade,
+  AuditEvent,
+} from '@chittyos/core';
+import {
+  createContext,
+  contextFromRequest,
+  createAuditEvent,
+  scoreToGrade,
+} from '@chittyos/core';
+
+// Re-export canonical types for convenience
+export type { ChittyContext, ContextType, ContextStatus, ContextGrade, AuditEvent };
+export { createContext, contextFromRequest, createAuditEvent, scoreToGrade };
 
 /**
- * ChittyContext provides identity-aware provenance tracking:
- * - WHO performed an action (ChittyID)
+ * ChittyContextService provides identity-aware provenance tracking:
+ * - WHO performed an action (ChittyID via ChittyConnect)
  * - WHAT context they were operating in (ContextConsciousness)
  * - HOW their expertise has grown (experience tracking)
  * - WHERE the outcomes can be traced (provenance chains)
@@ -16,19 +33,25 @@ import { generateId, safeJsonParse } from '../utils';
  */
 
 // ============================================
-// TYPES
+// EVIDENCE-SPECIFIC TYPES
+// (extend canonical types for domain needs)
 // ============================================
 
-export interface ChittyID {
-  id: string;
+/**
+ * EvidenceIdentity - Local identity cache that syncs with ChittyConnect
+ * The canonical ChittyID is managed by ChittyConnect; this is the local representation
+ */
+export interface EvidenceIdentity {
+  id: string;  // Canonical ChittyID from ChittyConnect
   type: 'user' | 'agent' | 'service' | 'workflow';
   name: string;
   credentials?: {
     publicKey?: string;
     attestations?: Attestation[];
   };
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   createdAt: string;
+  syncedAt?: string;  // Last sync with ChittyConnect
 }
 
 export interface Attestation {
@@ -210,10 +233,10 @@ export class ChittyContextService {
   // ============================================
 
   async registerChittyId(input: {
-    type: ChittyID['type'];
+    type: EvidenceIdentity['type'];
     name: string;
     metadata?: Record<string, any>;
-  }): Promise<ChittyID> {
+  }): Promise<EvidenceIdentity> {
     const id = `chitty_${generateId()}`;
 
     await this.env.DB.prepare(
@@ -230,7 +253,7 @@ export class ChittyContextService {
     };
   }
 
-  async getChittyId(id: string): Promise<ChittyID | null> {
+  async getChittyId(id: string): Promise<EvidenceIdentity | null> {
     const result = await this.env.DB.prepare(
       `SELECT * FROM chitty_ids WHERE id = ?`
     ).bind(id).first();
@@ -239,7 +262,7 @@ export class ChittyContextService {
 
     return {
       id: result.id as string,
-      type: result.type as ChittyID['type'],
+      type: result.type as EvidenceIdentity['type'],
       name: result.name as string,
       credentials: safeJsonParse(result.credentials as string, undefined),
       metadata: safeJsonParse(result.metadata as string, {}),
@@ -659,7 +682,7 @@ export class ChittyContextService {
   }
 
   async getAccountabilityReport(chittyId: string): Promise<{
-    profile: ChittyID | null;
+    profile: EvidenceIdentity | null;
     expertise: ExpertiseProfile[];
     recentActions: AccountabilityRecord[];
     stats: {

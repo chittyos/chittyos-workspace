@@ -1,14 +1,8 @@
-name = "chittymcp"
+name = "chittymcp-production"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
 account_id = "0bc21e3a5a9de1a4cc843be9c3e98121"
 
-[env.production]
 routes = [
   { pattern = "mcp.chitty.cc/*", zone_name = "chitty.cc" }
-]
-
-[env.staging]
-routes = [
-  { pattern = "mcp-staging.chitty.cc/*", zone_name = "chitty.cc" }
 ]

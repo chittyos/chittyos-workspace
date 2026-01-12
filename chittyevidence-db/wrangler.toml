@@ -1,4 +1,4 @@
-name = "chitty-evidence-platform"
+name = "chittyevidence-db"
 account_id = "0bc21e3a5a9de1a4cc843be9c3e98121"
 main = "src/index.ts"
 compatibility_date = "2025-01-01"
@@ -23,33 +23,33 @@ bindings = [
 
 [[migrations]]
 tag = "v1"
-new_classes = ["DuplicateHunterDO", "AccuracyGuardianDO"]
+new_classes = [ "DuplicateHunterDO", "AccuracyGuardianDO" ]
 
 # ============================================
 # D1 DATABASE
 # ============================================
 [[d1_databases]]
 binding = "DB"
-database_name = "chitty-evidence-db"
-database_id = "YOUR_D1_DATABASE_ID"
+database_name = "chittyevidence-db"
+database_id = "f486fed7-cba9-47d2-93fb-ca11d90ca084"
 
 # ============================================
 # R2 STORAGE
 # ============================================
 [[r2_buckets]]
 binding = "DOCUMENTS"
-bucket_name = "chitty-evidence-documents"
+bucket_name = "chittyevidence-documents"
 
 [[r2_buckets]]
 binding = "PROCESSED"
-bucket_name = "chitty-evidence-processed"
+bucket_name = "chittyevidence-processed"
 
 # ============================================
 # VECTORIZE INDEX
 # ============================================
 [[vectorize]]
 binding = "VECTORIZE"
-index_name = "chitty-evidence-embeddings"
+index_name = "chittyevidence-embeddings"
 
 # ============================================
 # WORKERS AI
@@ -62,21 +62,22 @@ binding = "AI"
 # ============================================
 [[queues.producers]]
 binding = "REPROCESS_QUEUE"
-queue = "document-reprocess"
+queue = "chittyevidence-reprocess"
 
 [[queues.producers]]
 binding = "CORRECTION_QUEUE"
-queue = "correction-apply"
+queue = "chittyevidence-corrections"
 
-[[queues.consumers]]
-queue = "document-reprocess"
-max_batch_size = 10
-max_retries = 3
+# Queue consumers temporarily disabled - existing consumers attached
+# [[queues.consumers]]
+# queue = "chittyevidence-reprocess"
+# max_batch_size = 10
+# max_retries = 3
 
-[[queues.consumers]]
-queue = "correction-apply"
-max_batch_size = 25
-max_retries = 3
+# [[queues.consumers]]
+# queue = "chittyevidence-corrections"
+# max_batch_size = 25
+# max_retries = 3
 
 # ============================================
 # CRON TRIGGERS
@@ -87,7 +88,7 @@ crons = [
   "*/15 * * * *",   # Every 15 min: Process approved corrections
   "0 3 * * *",      # Daily 3am: Scan for known error patterns
   "0 4 * * *",      # Daily 4am: Check expiring authorities
-  "0 0 * * 0"       # Weekly Sunday midnight: Full corpus duplicate scan
+  "0 0 * * SUN"     # Weekly Sunday midnight: Full corpus duplicate scan
 ]
 
 # ============================================
@@ -112,13 +113,11 @@ ENVIRONMENT = "development"
 AUTO_RESOLVE_CONFIDENCE_THRESHOLD = "0.99"
 
 # ============================================
-# STAGING
+# CUSTOM DOMAIN
 # ============================================
-[env.staging]
-name = "chitty-evidence-platform-staging"
-
-[env.staging.vars]
-ENVIRONMENT = "staging"
+routes = [
+  { pattern = "evidence.chitty.cc/*", zone_name = "chitty.cc" }
+]
 
 # ============================================
 # LIMITS
