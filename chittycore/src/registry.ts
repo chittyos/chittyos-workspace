@@ -45,6 +45,7 @@ const STATIC_SERVICES: Record<string, {
   credit: { baseUrl: 'https://credit.chitty.cc', exposes: ['api', 'docs'], category: 'Domain', status: 'Live', description: 'Credit and scoring' },
   resolution: { baseUrl: 'https://resolution.chitty.cc', exposes: ['api', 'docs'], category: 'Domain', status: 'Live', description: 'Dispute resolution' },
   brand: { baseUrl: 'https://brand.chitty.cc', exposes: ['api', 'docs'], category: 'Domain', status: 'Live', description: 'Brand management' },
+  counsel: { baseUrl: 'https://counsel.chitty.cc', exposes: ['api', 'mcp', 'docs'], category: 'Domain', status: 'Live', description: 'Legal AI Agent Platform - Cook County, Illinois' },
 
   // Application services
   chat: { baseUrl: 'https://chat.chitty.cc', exposes: ['api', 'mcp', 'docs'], category: 'Application', status: 'Live', description: 'ChittyChat conversational AI' },
@@ -157,6 +158,10 @@ export async function getGatewayRoutes(gateway: 'api' | 'mcp' | 'docs'): Promise
 
 // Static package metadata for common packages
 const STATIC_PACKAGES: Record<string, PackageMetadata> = {
+  // CLI tools
+  cli: { name: 'cli', version: '1.0.0', description: 'ChittyOS CLI - manage services, Claude configs, and CI/CD', install_url: 'https://git.chitty.cc/cli', platforms: ['npm', 'brew'], npm: '@chittyos/cli', brew: 'chittyos-cli' },
+
+  // Libraries
   chittyauth: { name: 'chittyauth', version: '1.0.0', description: 'ChittyOS authentication library', install_url: 'https://git.chitty.cc/chittyauth', platforms: ['npm'], npm: '@chittyos/auth' },
   chittyid: { name: 'chittyid', version: '1.0.0', description: 'ChittyID identity utilities', install_url: 'https://git.chitty.cc/chittyid', platforms: ['npm'], npm: '@chittyos/id' },
   chittyverify: { name: 'chittyverify', version: '1.0.0', description: 'Verification and validation', install_url: 'https://git.chitty.cc/chittyverify', platforms: ['npm'], npm: '@chittyos/verify' },

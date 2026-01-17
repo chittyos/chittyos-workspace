@@ -170,6 +170,59 @@ program
     await mcpCommand(options);
   });
 
+// Claude configuration management
+program
+  .command('claude [action]')
+  .description('Manage CLAUDE.md files')
+  .option('-t, --template <name>', 'Template to use')
+  .option('-p, --path <path>', 'Target directory')
+  .option('-f, --force', 'Overwrite existing file')
+  .option('--preview', 'Preview without writing')
+  .action(async (action, options) => {
+    const { claudeCommand } = await import('./commands/claude');
+    await claudeCommand(action, options);
+  });
+
+// Configuration management
+program
+  .command('config [action]')
+  .description('Manage Claude configuration')
+  .option('--mcp <action>', 'MCP server management (list|add|remove|install)')
+  .option('--json', 'Output in JSON format')
+  .action(async (action, options) => {
+    const { configCommand } = await import('./commands/config');
+    await configCommand(action, options);
+  });
+
+// Discovery command
+program
+  .command('discover')
+  .description('Discover commands, skills, and agents')
+  .option('--commands', 'List CLI commands')
+  .option('--skills', 'List available skills')
+  .option('--agents', 'List available agents')
+  .option('--tools', 'List MCP tools')
+  .option('--json', 'Output in JSON format')
+  .action(async (options) => {
+    const { discoverCommand } = await import('./commands/discover');
+    await discoverCommand(options);
+  });
+
+// CI/CD management across organizations
+program
+  .command('cicd [action]')
+  .description('CI/CD management across organizations')
+  .option('--org <name>', 'Target organization')
+  .option('--repo <owner/name>', 'Target repository')
+  .option('--workflow <name>', 'Target workflow file')
+  .option('--dry-run', 'Preview without making changes')
+  .option('--force', 'Skip confirmation prompts')
+  .option('--json', 'Output in JSON format')
+  .action(async (action, options) => {
+    const { cicdCommand } = await import('./commands/cicd');
+    await cicdCommand(action, options);
+  });
+
 // Global error handling
 process.on('uncaughtException', (error) => {
   console.error(chalk.red('❌ Uncaught Exception:'), error.message);
