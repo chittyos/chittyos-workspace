@@ -20,6 +20,137 @@
 import { ChittyConnectClient } from './svc-chittyconnect';
 
 // ============================================
+// SERVICE INTEGRATION CLIENTS
+// ============================================
+
+const CONNECT_URL = process.env.CHITTY_CONNECT_URL || 'https://connect.chitty.cc';
+const DNA_URL = process.env.CHITTY_DNA_URL || 'https://dna.chitty.cc';
+const LEDGER_URL = process.env.CHITTY_LEDGER_URL || 'https://ledger.chitty.cc';
+
+/**
+ * MemoryCloude client - for memory persistence
+ * Hooks into: connect.chitty.cc/api/memory/*
+ */
+export class MemoryCloudClient {
+  constructor(private baseUrl: string = CONNECT_URL, private chittyId?: string) {}
+
+  async persistInteraction(sessionId: string, interaction: {
+    type: string;
+    content: string;
+    entities?: Array<{ type: string; value: string }>;
+    decisions?: Array<{ decision: string; outcome: string }>;
+  }): Promise<void> {
+    await fetch(`${this.baseUrl}/api/memory/interactions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.chittyId && { 'X-ChittyID': this.chittyId }),
+      },
+      body: JSON.stringify({ sessionId, ...interaction }),
+    });
+  }
+
+  async recall(query: string, limit = 10): Promise<any[]> {
+    const response = await fetch(`${this.baseUrl}/api/memory/recall?q=${encodeURIComponent(query)}&limit=${limit}`, {
+      headers: this.chittyId ? { 'X-ChittyID': this.chittyId } : {},
+    });
+    return response.ok ? response.json() : [];
+  }
+}
+
+/**
+ * ChittyDNA client - for pattern recognition and mapping
+ * Hooks into: dna.chitty.cc/api/* or connect.chitty.cc/api/dna/*
+ * Separate tracking for ChittyID context vs user
+ */
+export class ChittyDNAClient {
+  constructor(private baseUrl: string = DNA_URL, private chittyId?: string) {}
+
+  /**
+   * Record a workflow pattern (for ChittyID context)
+   */
+  async recordWorkflow(workflow: {
+    name: string;
+    pattern: { type: 'regex' | 'semantic' | 'hybrid'; value: string };
+    tags: string[];
+    outcome: 'success' | 'failure';
+  }): Promise<void> {
+    await fetch(`${this.baseUrl}/api/workflows`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.chittyId && { 'X-ChittyID': this.chittyId }),
+      },
+      body: JSON.stringify(workflow),
+    });
+  }
+
+  /**
+   * Record context memory (session context for learning)
+   */
+  async recordContextMemory(sessionId: string, context: {
+    working_directory?: string;
+    active_files?: string[];
+    last_command?: string;
+    outcome?: 'success' | 'failure';
+  }): Promise<void> {
+    await fetch(`${this.baseUrl}/api/context-memory`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.chittyId && { 'X-ChittyID': this.chittyId }),
+      },
+      body: JSON.stringify({ session_id: sessionId, context }),
+    });
+  }
+
+  /**
+   * Map pattern for user (separate from ChittyID)
+   */
+  async recordUserPattern(userId: string, pattern: {
+    type: string;
+    content: string;
+    frequency: number;
+  }): Promise<void> {
+    await fetch(`${this.baseUrl}/api/user-patterns`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId, ...pattern }),
+    });
+  }
+}
+
+/**
+ * ChittyLedger client - for immutable event logging
+ * Hooks into: ledger.chitty.cc/api/events
+ */
+export class ChittyLedgerClient {
+  constructor(private baseUrl: string = LEDGER_URL, private chittyId?: string) {}
+
+  async logEvent(event: {
+    event_type: string;
+    service_name: string;
+    action: string;
+    entity_type?: string;
+    entity_id?: string;
+    session_id?: string;
+    metadata?: Record<string, any>;
+  }): Promise<void> {
+    await fetch(`${this.baseUrl}/api/events`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.chittyId && { 'X-ChittyID': this.chittyId }),
+      },
+      body: JSON.stringify({
+        event_id: `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        ...event,
+      }),
+    });
+  }
+}
+
+// ============================================
 // RAW SESSION DATA TYPES (from Claude Code JSONL)
 // ============================================
 
@@ -973,14 +1104,187 @@ export function extractMemoryEntries(timelines: SessionTimeline[]): MemoryCloudE
   return entries;
 }
 
+// ============================================
+// MASTER SYNC ORCHESTRATOR
+// ============================================
+
+export interface SyncClients {
+  memory: MemoryCloudClient;
+  dna: ChittyDNAClient;
+  ledger: ChittyLedgerClient;
+  connect: ChittyConnectClient;
+}
+
+/**
+ * Full sync to all ChittyOS services
+ * Coordinates: MemoryCloude, ChittyDNA, ChittyLedger, SessionStateService
+ */
+export async function syncSessionToAllServices(
+  timeline: SessionTimeline,
+  clients: SyncClients,
+  options: { chittyId?: string; userId?: string } = {}
+): Promise<{ success: boolean; errors: string[] }> {
+  const errors: string[] = [];
+  const { chittyId, userId } = options;
+
+  // 1. Sync to MemoryCloude - persist memories
+  try {
+    const memoryEntries = extractMemoryEntries([timeline]);
+    for (const entry of memoryEntries) {
+      await clients.memory.persistInteraction(timeline.sessionId, {
+        type: entry.type,
+        content: entry.content,
+        entities: entry.tags.map(t => ({ type: 'tag', value: t })),
+      });
+    }
+    console.log(`[Sync] Persisted ${memoryEntries.length} memories to MemoryCloude`);
+  } catch (err) {
+    errors.push(`MemoryCloude: ${err}`);
+  }
+
+  // 2. Sync to ChittyDNA - pattern recognition for ChittyID context
+  try {
+    // Record command patterns as workflows
+    for (const [pattern, count] of Object.entries(timeline.patterns.commandPatterns)) {
+      if (count >= 3) { // Only patterns used 3+ times
+        await clients.dna.recordWorkflow({
+          name: `cmd_${pattern.replace(/\s+/g, '_')}`,
+          pattern: { type: 'regex', value: pattern },
+          tags: [timeline.projectName, 'command'],
+          outcome: 'success',
+        });
+      }
+    }
+
+    // Record context memory
+    await clients.dna.recordContextMemory(timeline.sessionId, {
+      working_directory: timeline.projectPath,
+      active_files: timeline.filesWritten.slice(-10).map(f => f.path),
+      last_command: timeline.commands[timeline.commands.length - 1]?.command,
+      outcome: timeline.memoryTriggers.some(t => t.type === 'error_resolution') ? 'failure' : 'success',
+    });
+
+    console.log(`[Sync] Recorded patterns to ChittyDNA for ChittyID context`);
+  } catch (err) {
+    errors.push(`ChittyDNA (context): ${err}`);
+  }
+
+  // 3. Sync to ChittyDNA - separate user pattern tracking
+  if (userId) {
+    try {
+      // Track user's tool preferences
+      const topTools = Object.entries(timeline.patterns.toolFrequency)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
+      for (const [tool, count] of topTools) {
+        await clients.dna.recordUserPattern(userId, {
+          type: 'tool_preference',
+          content: tool,
+          frequency: count,
+        });
+      }
+      console.log(`[Sync] Recorded user patterns to ChittyDNA`);
+    } catch (err) {
+      errors.push(`ChittyDNA (user): ${err}`);
+    }
+  }
+
+  // 4. Log to ChittyLedger - immutable audit trail
+  try {
+    // Log session summary event
+    await clients.ledger.logEvent({
+      event_type: 'session_sync',
+      service_name: 'session-intelligence',
+      action: 'session_analyzed',
+      entity_type: 'session',
+      entity_id: timeline.sessionId,
+      session_id: timeline.sessionId,
+      metadata: {
+        project: timeline.projectName,
+        duration_ms: new Date(timeline.endTime).getTime() - new Date(timeline.startTime).getTime(),
+        tool_calls: Object.values(timeline.patterns.toolFrequency).reduce((a, b) => a + b, 0),
+        files_read: timeline.filesRead.length,
+        files_written: timeline.filesWritten.length,
+        commands: timeline.commands.length,
+        todos_completed: timeline.todos.length > 0
+          ? timeline.todos[timeline.todos.length - 1].todos.filter(t => t.status === 'completed').length
+          : 0,
+      },
+    });
+
+    // Log todo completions as separate events
+    for (const trigger of timeline.memoryTriggers.filter(t => t.type === 'todo_completed')) {
+      await clients.ledger.logEvent({
+        event_type: 'todo_completed',
+        service_name: 'session-intelligence',
+        action: 'task_completed',
+        entity_type: 'todo',
+        session_id: timeline.sessionId,
+        metadata: { content: trigger.content, project: timeline.projectName },
+      });
+    }
+
+    console.log(`[Sync] Logged events to ChittyLedger`);
+  } catch (err) {
+    errors.push(`ChittyLedger: ${err}`);
+  }
+
+  // 5. Sync session state to ChittyConnect
+  try {
+    await clients.connect.syncSession(timeline.sessionId, {
+      project: timeline.projectName,
+      isActive: timeline.isActive,
+      lastActivity: timeline.endTime,
+      focusAreas: timeline.patterns.focusAreas,
+      todoState: timeline.todos.length > 0 ? timeline.todos[timeline.todos.length - 1] : null,
+    });
+    console.log(`[Sync] Synced session state to ChittyConnect`);
+  } catch (err) {
+    errors.push(`ChittyConnect: ${err}`);
+  }
+
+  return { success: errors.length === 0, errors };
+}
+
+/**
+ * Create sync clients with optional ChittyID
+ */
+export function createSyncClients(chittyId?: string): SyncClients {
+  return {
+    memory: new MemoryCloudClient(CONNECT_URL, chittyId),
+    dna: new ChittyDNAClient(DNA_URL, chittyId),
+    ledger: new ChittyLedgerClient(LEDGER_URL, chittyId),
+    connect: new ChittyConnectClient({
+      baseUrl: CONNECT_URL,
+      serviceId: 'session-intelligence',
+      serviceSecret: process.env.CHITTY_SERVICE_SECRET || '',
+    }),
+  };
+}
+
 export default {
+  // Parsing
   parseSessionJSONL,
+
+  // Analysis
+  generateIntelligenceReport,
+
+  // Sync extraction
   identifyParallelSessions,
   extractProjectContext,
   extractTopics,
   extractTodoSync,
   extractTaskSync,
   extractMemoryEntries,
+
+  // Service clients
+  MemoryCloudClient,
+  ChittyDNAClient,
+  ChittyLedgerClient,
+  createSyncClients,
+
+  // Orchestration
+  syncSessionToAllServices,
   syncToChittyConnect,
-  generateIntelligenceReport,
 };
