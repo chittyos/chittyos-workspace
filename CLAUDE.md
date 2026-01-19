@@ -135,6 +135,32 @@ All gateways query `registry.chitty.cc` for dynamic service discovery:
    - Routes to `{service}.chitty.cc/docs/*`
    - Provides documentation index at root
 
+## Terminology Research Protocol (MANDATORY)
+
+**Before naming ANY component, pipeline, service, endpoint, or concept:**
+
+1. **Research industry standards** for the domain:
+   - Legal/Evidence: **EDRM** (Electronic Discovery Reference Model)
+   - Archives: **OAIS** (Open Archival Information System)
+   - Auth: **OAuth 2.0 / OIDC** terminology
+   - APIs: **OpenAPI** conventions
+   - Data: **Schema.org** or domain-specific standards
+
+2. **Use established terms** - Do NOT invent new terminology when standards exist
+
+3. **Document the standard** in code comments with a reference URL
+
+4. **Check ChittyCanon** (`canon.chitty.cc/api/terms`) for existing terms
+
+**Example:**
+```
+# BAD: Made up "consideration" and "intake"
+# GOOD: Used EDRM "collection" and "preservation"
+# Ref: https://edrm.net/resources/frameworks-and-standards/edrm-model/
+```
+
+ChittyCanon term: `terminology_research_protocol` (term_id: 5ec80579-5cac-4c3a-ab24-9fad54769838)
+
 ## Related Repositories
 
 - **ChittyConnect** (`github.com/CHITTYOS/chittyconnect`) - Central intelligence hub
