@@ -99,18 +99,18 @@ crons = [
 
 # Collection Pipeline - EDRM "Collection" stage
 # Gathering potentially relevant documents for review
-# Stream ID: 6d71fa5d8a764350b0094cef7f8b5fef
-# Pipeline ID: 68da4fbb41ad4ba0858d75359a63545c
+# Stream ID: 049577fac9ce4491b07b092c3f54cac0
+# Pipeline ID: 0b08219189274957ad21bc1e8d5891a4
 [[pipelines]]
-pipeline = "6d71fa5d8a764350b0094cef7f8b5fef"
+pipeline = "049577fac9ce4491b07b092c3f54cac0"
 binding = "COLLECTION_PIPELINE"
 
 # Preservation Pipeline - EDRM "Preservation" stage
 # Formally securing documents with chain of custody
-# Stream ID: 4cd9a96973d3463ab13566dfcdc55efe
-# Pipeline ID: 9228d97a991243089e433b5253a3b8c4
+# Stream ID: 60833c9b917741e8a20109690df63970
+# Pipeline ID: 72e062cb3e0249839d800507c3d63aa6
 [[pipelines]]
-pipeline = "4cd9a96973d3463ab13566dfcdc55efe"
+pipeline = "60833c9b917741e8a20109690df63970"
 binding = "PRESERVATION_PIPELINE"
 
 # ============================================
