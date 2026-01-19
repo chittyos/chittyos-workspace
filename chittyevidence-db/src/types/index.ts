@@ -2,6 +2,21 @@
 // ENVIRONMENT BINDINGS
 // ============================================
 
+/**
+ * Cloudflare Pipelines Stream binding type
+ * https://developers.cloudflare.com/pipelines/streams/
+ *
+ * Cloudflare Pipelines architecture:
+ * - Stream: Durable buffered queue for receiving events (input)
+ * - Pipeline: SQL transformations on data (processing)
+ * - Sink: Destination like R2, Parquet, Iceberg (output)
+ *
+ * The Worker binding provides access to send events to a Stream.
+ */
+export interface PipelineStream {
+  send(events: unknown[]): Promise<void>;
+}
+
 export interface Env {
   // Workflow
   DOCUMENT_WORKFLOW: Workflow;
@@ -23,11 +38,23 @@ export interface Env {
   REPROCESS_QUEUE: Queue;
   CORRECTION_QUEUE: Queue;
 
+  // Cloudflare Pipelines Streams (EDRM-Aligned)
+  // See: https://edrm.net/resources/frameworks-and-standards/edrm-model/
+  COLLECTION_PIPELINE?: PipelineStream;      // EDRM Collection - gathering potentially relevant docs
+  PRESERVATION_PIPELINE?: PipelineStream;    // EDRM Preservation - securing with chain of custody
+
+  // ChittyConnect integration
+  CHITTYCONNECT_URL: string;
+  CHITTYCONNECT_TOKEN: string;
+
   // Config
   ENVIRONMENT: string;
   AUTO_RESOLVE_CONFIDENCE_THRESHOLD: string;
   DUPLICATE_AUTO_MERGE_THRESHOLD: string;
   MAX_OCR_TIMEOUT_MS: string;
+
+  // Test authentication (only active in non-production)
+  TEST_API_KEY?: string;
 }
 
 // ============================================

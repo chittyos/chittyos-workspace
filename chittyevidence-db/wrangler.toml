@@ -92,6 +92,26 @@ crons = [
 ]
 
 # ============================================
+# CLOUDFLARE PIPELINES (EDRM-Aligned)
+# Electronic Discovery Reference Model terminology
+# https://edrm.net/resources/frameworks-and-standards/edrm-model/
+# ============================================
+
+# Collection Pipeline - EDRM "Collection" stage
+# Gathering potentially relevant documents for review
+# Pipeline ID: 2407b5c5fd29409690ff0d25fb5097ee
+[[pipelines]]
+pipeline = "chittyevidence-consideration"
+binding = "COLLECTION_PIPELINE"
+
+# Preservation Pipeline - EDRM "Preservation" stage
+# Formally securing documents with chain of custody
+# Pipeline ID: d3cb9b24752f4d089734198030fff2e2
+[[pipelines]]
+pipeline = "chittyevidence-intake"
+binding = "PRESERVATION_PIPELINE"
+
+# ============================================
 # ENVIRONMENT VARIABLES
 # ============================================
 [vars]
@@ -99,6 +119,8 @@ ENVIRONMENT = "production"
 AUTO_RESOLVE_CONFIDENCE_THRESHOLD = "0.95"
 DUPLICATE_AUTO_MERGE_THRESHOLD = "0.98"
 MAX_OCR_TIMEOUT_MS = "300000"
+CHITTYCONNECT_URL = "https://connect.chitty.cc"
+CHITTYCONNECT_TOKEN = "" # Set via wrangler secret
 
 # ============================================
 # LOCAL DEVELOPMENT
@@ -107,10 +129,25 @@ MAX_OCR_TIMEOUT_MS = "300000"
 port = 8787
 local_protocol = "http"
 
-# Development-specific overrides
+# Development-specific overrides (bindings inherited from top-level)
 [env.dev.vars]
 ENVIRONMENT = "development"
 AUTO_RESOLVE_CONFIDENCE_THRESHOLD = "0.99"
+TEST_API_KEY = "dev-test-key-change-me-in-secrets"
+
+# ============================================
+# STAGING ENVIRONMENT
+# ============================================
+[env.staging]
+routes = [
+  { pattern = "evidence-staging.chitty.cc/*", zone_name = "chitty.cc" }
+]
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
+AUTO_RESOLVE_CONFIDENCE_THRESHOLD = "0.95"
+# Staging test auth - use wrangler secret for real value
+# TEST_API_KEY should be set via: wrangler secret put TEST_API_KEY --env staging
 
 # ============================================
 # CUSTOM DOMAIN
