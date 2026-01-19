@@ -7,3 +7,9 @@
 
 # Canon certification files require human approval
 /scripts/canon-*.sh @CHITTYOS/governance
+
+# Hookify rules - human approval (Claude will try to modify these)
+/.claude/hookify.*.local.md @CHITTYOS/governance
+
+# Deployment config - human approval
+/wrangler.toml @CHITTYOS/governance
