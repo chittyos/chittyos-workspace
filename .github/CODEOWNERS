@@ -1,0 +1,9 @@
+# CODEOWNERS - Require human approval for critical paths
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Claude-proof: Workflow changes require human approval
+/.github/workflows/ @CHITTYOS/governance
+/.github/CODEOWNERS @CHITTYOS/governance
+
+# Canon certification files require human approval
+/scripts/canon-*.sh @CHITTYOS/governance
