@@ -1,17 +1,19 @@
 // ============================================
-// PRE-FILTER PIPELINE WORKER
-// Canonical URI: chittycanon://evidence/pipeline/pre-filter
-// Filters consideration submissions before intake
+// CULLING PIPELINE WORKER (EDRM-Aligned)
+// Canonical URI: chittycanon://evidence/pipeline/culling
+// EDRM Stage: Processing/Culling - filtering before preservation
+// https://edrm.net/resources/frameworks-and-standards/edrm-model/
 // ============================================
 
 import { Env } from '../types';
 import { generateId } from '../utils';
-import { validateConsiderationEvent } from '../services/svc-chittyschema';
+import { validateCollectionEvent } from '../services/svc-chittyschema';
 
 /**
- * Consideration submission from the pipeline stream
+ * Collection event from the pipeline stream (EDRM Collection stage)
+ * Documents gathered for potential relevance to a legal matter
  */
-export interface ConsiderationEvent {
+export interface CollectionEvent {
   submission_id: string;
   source: 'email_watch' | 'gdrive_sync' | 'court_filing' | 'client_portal' | 'manual' | 'api';
   source_ref: string;
@@ -33,12 +35,18 @@ export interface ConsiderationEvent {
   source_metadata?: Record<string, unknown>;
 }
 
+/** @deprecated Use CollectionEvent instead */
+export type ConsiderationEvent = CollectionEvent;
+
 /**
- * Qualified document for intake
+ * Preservation event for qualified documents (EDRM Preservation stage)
+ * Documents formally secured with chain of custody
  */
-export interface IntakeEvent {
+export interface PreservationEvent {
   submission_id: string;
-  intake_id: string;
+  preservation_id: string;
+  /** @deprecated Use preservation_id instead */
+  intake_id?: string;
   qualified_at: string;
   qualification_reason: string;
   qualification_score: number;
@@ -53,6 +61,9 @@ export interface IntakeEvent {
   hints?: Record<string, unknown>;
   processing_priority: number;
 }
+
+/** @deprecated Use PreservationEvent instead */
+export type IntakeEvent = PreservationEvent;
 
 /**
  * Rejection record for archive
@@ -71,15 +82,21 @@ export interface RejectionRecord {
 }
 
 /**
- * Pre-filter result
+ * Culling result (EDRM Processing/Culling stage)
  */
+export type CullingResult =
+  | { action: 'preserve'; event: PreservationEvent }
+  | { action: 'reject'; record: RejectionRecord }
+  | { action: 'defer'; reason: string; retry_after_ms: number };
+
+/** @deprecated Use CullingResult instead */
 export type PreFilterResult =
-  | { action: 'intake'; event: IntakeEvent }
+  | { action: 'intake'; event: PreservationEvent }
   | { action: 'reject'; record: RejectionRecord }
   | { action: 'defer'; reason: string; retry_after_ms: number };
 
 /**
- * PreFilterService - Determines if a submission qualifies for intake
+ * CullingService - Determines if a submission qualifies for preservation (EDRM)
  *
  * This runs as part of the Pipeline transform, making lightweight
  * decisions before triggering expensive workflows.
@@ -88,18 +105,18 @@ export class PreFilterService {
   constructor(private env: Env) {}
 
   /**
-   * Filter a consideration event
-   * Returns intake event if qualified, rejection record otherwise
+   * Filter a collection event (EDRM Collection → Preservation transition)
+   * Returns preservation event if qualified, rejection record otherwise
    *
-   * Schema validation via: chittycanon://schema/evidence/pipeline/consideration
+   * Schema validation via: chittycanon://schema/evidence/pipeline/collection
    */
-  async filter(event: ConsiderationEvent): Promise<PreFilterResult> {
+  async filter(event: CollectionEvent): Promise<PreFilterResult> {
     const now = new Date().toISOString();
 
     // ============================================
     // STEP 0: Schema validation via ChittySchema
     // ============================================
-    const validation = await validateConsiderationEvent(event);
+    const validation = await validateCollectionEvent(event);
     if (!validation.valid) {
       return {
         action: 'reject',
@@ -107,13 +124,13 @@ export class PreFilterService {
           submission_id: event.submission_id || generateId(),
           rejected_at: now,
           rejection_reason: 'schema_validation_failed',
-          rejection_details: `Schema validation failed: ${validation.errors?.map((e) => e.message).join('; ')}`,
+          rejection_details: `Schema validation failed: ${validation.errors?.map((e: { message: string; path?: string }) => e.message).join('; ')}`,
           source: event.source || 'unknown',
           source_ref: event.source_ref || 'unknown',
           file_name: event.file_name || 'unknown',
           hints: event.hints,
           can_retry: true,
-          retry_hints: validation.errors?.map((e) => `Fix ${e.path}: ${e.message}`) || [],
+          retry_hints: validation.errors?.map((e: { message: string; path?: string }) => `Fix ${e.path}: ${e.message}`) || [],
         },
       };
     }
@@ -271,20 +288,22 @@ export class PreFilterService {
   }
 
   /**
-   * Qualify a submission for intake
+   * Qualify a submission for preservation (EDRM Preservation stage)
    */
   private qualify(
-    event: ConsiderationEvent,
+    event: CollectionEvent,
     reason: string,
     score: number,
     now: string,
-    extra: Partial<IntakeEvent>
+    extra: Partial<PreservationEvent>
   ): PreFilterResult {
+    const id = generateId();
     return {
       action: 'intake',
       event: {
         submission_id: event.submission_id,
-        intake_id: generateId(),
+        preservation_id: id,
+        intake_id: id, // Backwards compatibility
         qualified_at: now,
         qualification_reason: reason,
         qualification_score: score,

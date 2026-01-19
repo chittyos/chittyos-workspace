@@ -57,18 +57,19 @@ export default {
     for (const event of sorted) {
       const result = await worker.process(event);
 
+      const eventId = event.preservation_id || event.intake_id!;
       if (result.success) {
         if (result.error?.includes('Duplicate')) {
           duplicates++;
           results.push({
-            intake_id: event.intake_id,
+            intake_id: eventId,
             status: 'duplicate',
             document_id: result.documentId,
           });
         } else {
           succeeded++;
           results.push({
-            intake_id: event.intake_id,
+            intake_id: eventId,
             status: 'processing',
             document_id: result.documentId,
           });
@@ -76,7 +77,7 @@ export default {
       } else {
         failed++;
         results.push({
-          intake_id: event.intake_id,
+          intake_id: eventId,
           status: 'failed',
           error: result.error,
         });

@@ -230,7 +230,7 @@ export class IntakeWorker {
       // ============================================
       // STEP 3: Upload to R2
       // ============================================
-      const documentId = event.intake_id;
+      const documentId = event.preservation_id || event.intake_id!;
       const datePrefix = new Date().toISOString().slice(0, 10);
       const r2Key = `documents/${datePrefix}/${documentId}/${event.file_name}`;
 
