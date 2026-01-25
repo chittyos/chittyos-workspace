@@ -92,6 +92,28 @@ crons = [
 ]
 
 # ============================================
+# CLOUDFLARE PIPELINES (EDRM-Aligned)
+# Electronic Discovery Reference Model terminology
+# https://edrm.net/resources/frameworks-and-standards/edrm-model/
+# ============================================
+
+# Collection Pipeline - EDRM "Collection" stage
+# Gathering potentially relevant documents for review
+# Stream ID: 049577fac9ce4491b07b092c3f54cac0
+# Pipeline ID: 0b08219189274957ad21bc1e8d5891a4
+[[pipelines]]
+pipeline = "049577fac9ce4491b07b092c3f54cac0"
+binding = "COLLECTION_PIPELINE"
+
+# Preservation Pipeline - EDRM "Preservation" stage
+# Formally securing documents with chain of custody
+# Stream ID: 60833c9b917741e8a20109690df63970
+# Pipeline ID: 72e062cb3e0249839d800507c3d63aa6
+[[pipelines]]
+pipeline = "60833c9b917741e8a20109690df63970"
+binding = "PRESERVATION_PIPELINE"
+
+# ============================================
 # ENVIRONMENT VARIABLES
 # ============================================
 [vars]
@@ -99,6 +121,8 @@ ENVIRONMENT = "production"
 AUTO_RESOLVE_CONFIDENCE_THRESHOLD = "0.95"
 DUPLICATE_AUTO_MERGE_THRESHOLD = "0.98"
 MAX_OCR_TIMEOUT_MS = "300000"
+CHITTYCONNECT_URL = "https://connect.chitty.cc"
+CHITTYCONNECT_TOKEN = "" # Set via wrangler secret
 
 # ============================================
 # LOCAL DEVELOPMENT
@@ -107,10 +131,25 @@ MAX_OCR_TIMEOUT_MS = "300000"
 port = 8787
 local_protocol = "http"
 
-# Development-specific overrides
+# Development-specific overrides (bindings inherited from top-level)
 [env.dev.vars]
 ENVIRONMENT = "development"
 AUTO_RESOLVE_CONFIDENCE_THRESHOLD = "0.99"
+TEST_API_KEY = "dev-test-key-change-me-in-secrets"
+
+# ============================================
+# STAGING ENVIRONMENT
+# ============================================
+[env.staging]
+routes = [
+  { pattern = "evidence-staging.chitty.cc/*", zone_name = "chitty.cc" }
+]
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
+AUTO_RESOLVE_CONFIDENCE_THRESHOLD = "0.95"
+# Staging test auth - use wrangler secret for real value
+# TEST_API_KEY should be set via: wrangler secret put TEST_API_KEY --env staging
 
 # ============================================
 # CUSTOM DOMAIN

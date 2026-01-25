@@ -10,7 +10,15 @@ import { KnowledgeGapsService } from './services/svc-knowledgegaps';
 import { ChittyContextService } from './services/svc-chittycontext';
 import { LegalConstitutionService } from './services/svc-legalconstitution';
 import { authenticateRequest, hasPermission, AuthContext } from './services/svc-chittyconnect';
+import { exportRoutes } from './routes/export';
+import { ExportService } from './services/svc-export';
 import { generateId } from './utils';
+// Pipeline imports (EDRM-aligned)
+import { collectionRoutes } from './pipelines/collection-handler';
+import { handleIntakeStream } from './pipelines/intake-worker';
+import { ConsiderationEvent } from './pipelines/pre-filter';
+import preFilterTransform from './pipelines/pre-filter-transform';
+import intakeTransform from './pipelines/intake-transform';
 // Capability Framework imports
 import { createContext, isSuccess, isFailure, evaluateRolloutRules } from '@chittyos/core';
 import type { ChittyContext } from '@chittyos/core';
@@ -67,17 +75,19 @@ app.use('*', async (c, next) => {
     return next();
   }
 
+  // Always attempt authentication (needed for trust scores in capabilities)
+  const auth = await authenticateRequest(c.req.raw, c.env);
+  c.set('auth', auth);
+
   // Check if this is a protected prefix
   const isProtected = PROTECTED_PREFIXES.some(prefix => path.startsWith(prefix));
 
-  // Skip auth for read-only requests on non-protected routes
+  // Allow read-only requests without requiring authentication
   if (!isProtected || READ_ONLY_METHODS.includes(method)) {
     return next();
   }
 
-  // Authenticate the request
-  const auth = await authenticateRequest(c.req.raw, c.env);
-
+  // Require auth for protected write operations
   if (!auth.authenticated) {
     return c.json({
       error: 'Unauthorized',
@@ -86,8 +96,6 @@ app.use('*', async (c, next) => {
     }, 401);
   }
 
-  // Store auth context for route handlers
-  c.set('auth', auth);
   await next();
 });
 
@@ -177,11 +185,48 @@ app.get('/', (c) => {
         facts: 'GET /legal/cases/:caseId/facts',
         addFact: 'POST /legal/cases/:caseId/facts',
       },
+      pipeline: {
+        // EDRM Collection stage endpoints
+        collect: 'POST /collect',
+        collectBatch: 'POST /collect/batch',
+        collectStatus: 'GET /collect/:submission_id',
+        collectRetry: 'POST /collect/retry/:submission_id',
+        pipelineStats: 'GET /collect/stats',
+      },
+      export: {
+        targets: 'GET /export/targets',
+        createTarget: 'POST /export/targets',
+        syncTarget: 'POST /export/targets/:id/sync',
+        syncHistory: 'GET /export/targets/:id/syncs',
+        webhooks: 'GET /export/webhooks',
+        createWebhook: 'POST /export/webhooks',
+        testWebhook: 'POST /export/webhooks/:id/test',
+        events: 'GET /export/events',
+        processEvents: 'POST /export/events/process',
+        documentSyncStatus: 'GET /export/documents/:id/sync-status',
+        stats: 'GET /export/stats',
+        setupNeon: 'POST /export/setup/neon',
+        validateNotion: 'POST /export/setup/notion/validate',
+      },
     },
   });
 });
 
 app.get('/health', (c) => c.json({ status: 'healthy', timestamp: new Date().toISOString() }));
+
+// ============================================
+// EXPORT & DISTRIBUTION ROUTES
+// ============================================
+
+app.route('/export', exportRoutes);
+
+// ============================================
+// PIPELINE: COLLECTION ENDPOINT (EDRM-Aligned)
+// EDRM Stage: Collection - gathering potentially relevant documents
+// https://edrm.net/resources/frameworks-and-standards/edrm-model/
+// ============================================
+
+app.route('/collect', collectionRoutes);
 
 // ============================================
 // DOCUMENT UPLOAD & STATUS
@@ -807,15 +852,25 @@ app.get('/provenance/:entityType/:entityId/verify', async (c) => {
 // Create context from request for capability invocations
 function contextFromAuth(auth: AuthContext | undefined, request: Request): ChittyContext {
   const chittyId = auth?.chittyId || request.headers.get('X-Chitty-ID') || 'anonymous';
-  const trustScore = auth?.authenticated ? 75 : 50;
+
+  // Trust score calculation:
+  // - Test auth with explicit score: use testTrustScore (allows testing all grades)
+  // - Authenticated: 75 (Grade C - can invoke general capabilities)
+  // - Anonymous: 50 (Grade F - limited access)
+  let trustScore = 50;
+  if (auth?.isTestAuth && auth.testTrustScore !== undefined) {
+    trustScore = auth.testTrustScore;
+  } else if (auth?.authenticated) {
+    trustScore = 75;
+  }
 
   return createContext(chittyId, 'session', {
     trustScore,
     sessionId: request.headers.get('X-Session-ID') || crypto.randomUUID(),
     requestId: request.headers.get('X-Request-ID') || crypto.randomUUID(),
     metadata: {
-      isTest: request.headers.get('X-Test-Context') === 'true',
-      authMethod: auth?.authenticated ? 'authenticated' : 'anonymous',
+      isTest: auth?.isTestAuth || request.headers.get('X-Test-Context') === 'true',
+      authMethod: auth?.isTestAuth ? 'test' : auth?.authenticated ? 'authenticated' : 'anonymous',
     },
   });
 }
@@ -1310,10 +1365,13 @@ async function handleCron(event: ScheduledEvent, env: Env): Promise<void> {
       break;
 
     case '*/15 * * * *':
-      // Every 15 min: Process approved corrections
+      // Every 15 min: Process approved corrections + export events
       const guardianId = env.ACCURACY_GUARDIAN.idFromName('global');
       const guardian = env.ACCURACY_GUARDIAN.get(guardianId);
       await guardian.fetch(new Request('http://internal/corrections/bulk-apply'));
+      // Process export events (webhooks)
+      const exportSvc = new ExportService(env);
+      await exportSvc.processEvents(50);
       break;
 
     case '0 3 * * *':

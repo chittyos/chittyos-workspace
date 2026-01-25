@@ -1,0 +1,97 @@
+name: ChittyCanon Certification Gate
+
+on:
+  pull_request:
+    branches: [main, master]
+    paths:
+      - '**/*.ts'
+      - '**/*.sql'
+      - '**/wrangler.toml'
+      - '**/package.json'
+
+jobs:
+  verify-terminology:
+    name: Verify Terminology Certification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changed
+        run: |
+          echo "files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | tr '\n' ' ')" >> $GITHUB_OUTPUT
+
+      - name: Extract new terms from changes
+        id: extract
+        run: |
+          # Extract potential new term patterns from changed files
+          TERMS=""
+          for file in ${{ steps.changed.outputs.files }}; do
+            if [[ -f "$file" ]]; then
+              # Look for snake_case identifiers that look like domain terms
+              NEW_TERMS=$(grep -oE '[a-z]+_[a-z]+(_[a-z]+)*' "$file" 2>/dev/null | sort -u | tr '\n' ' ' || true)
+              TERMS="$TERMS $NEW_TERMS"
+            fi
+          done
+          # Dedupe
+          TERMS=$(echo "$TERMS" | tr ' ' '\n' | sort -u | tr '\n' ' ')
+          echo "terms=$TERMS" >> $GITHUB_OUTPUT
+          echo "Found terms: $TERMS"
+
+      - name: Verify against ChittyCanon
+        run: |
+          CANON_URL="https://canon.chitty.cc/api/terms"
+          FAILED=0
+
+          echo "Fetching certified terms from ChittyCanon..."
+          CERTIFIED=$(curl -s "$CANON_URL" | jq -r '.terms[].name' | tr '\n' ' ')
+
+          # Always-allowed standard terms (EDRM, OAuth, common infra)
+          ALLOWED="collection preservation processing review analysis production culling token grant scope client authorization pipeline stream sink queue worker handler service endpoint route file_path new_text old_text content user_prompt submission_id source_ref file_name file_size mime_type"
+
+          echo "Checking terms..."
+          for term in ${{ steps.extract.outputs.terms }}; do
+            # Skip if it's a standard allowed term
+            if echo "$ALLOWED" | grep -qw "$term"; then
+              echo "✅ $term (standard term)"
+              continue
+            fi
+
+            # Skip common programming terms
+            if [[ "$term" =~ ^(get_|set_|is_|has_|can_|should_|will_|did_) ]]; then
+              continue
+            fi
+
+            # Check if in ChittyCanon
+            if echo "$CERTIFIED" | grep -qw "$term"; then
+              echo "✅ $term (ChittyCanon certified)"
+            else
+              echo "❌ $term - NOT CERTIFIED"
+              FAILED=1
+            fi
+          done
+
+          if [ $FAILED -eq 1 ]; then
+            echo ""
+            echo "=========================================="
+            echo "❌ CERTIFICATION GATE FAILED"
+            echo "=========================================="
+            echo ""
+            echo "Some terms are not registered in ChittyCanon."
+            echo ""
+            echo "To certify a term, propose it to ChittyCanon:"
+            echo ""
+            echo 'curl -X POST "https://canon.chitty.cc/api/terms/propose" \'
+            echo '  -H "Content-Type: application/json" \'
+            echo '  -d '"'"'{"name": "YOUR_TERM", "definition": "...", "domain": [...], "category": "core_type", "proposer": "...", "service": "..."}'"'"
+            echo ""
+            echo "Then re-run this workflow."
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ All terms certified!"
