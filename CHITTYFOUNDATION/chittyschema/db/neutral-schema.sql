@@ -420,8 +420,23 @@ CREATE TABLE entity_roles (
     expires_at TIMESTAMPTZ,
 
     CONSTRAINT valid_access_level CHECK (access_level IN ('restricted', 'standard', 'elevated', 'administrative', 'system')),
-    UNIQUE(entity_id, context_id, role_name)
+    UNIQUE NULLS NOT DISTINCT (entity_id, context_id, role_name)
 );
+
+-- Enforce actor invariant: only Person (P) entities can hold roles
+CREATE OR REPLACE FUNCTION enforce_person_entity_role()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF (SELECT entity_type FROM entities WHERE id = NEW.entity_id) != 'P' THEN
+        RAISE EXCEPTION 'entity_roles: entity_id % is not a Person (P) entity', NEW.entity_id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_entity_roles_person_only
+    BEFORE INSERT OR UPDATE ON entity_roles
+    FOR EACH ROW EXECUTE FUNCTION enforce_person_entity_role();
 
 -- =============================================================================
 -- UNIVERSAL SCHEMA MANAGEMENT
@@ -604,6 +619,11 @@ BEGIN
 
         last_hash := event_record.event_hash;
     END LOOP;
+
+    -- No events = unverified (not valid)
+    IF event_count = 0 THEN
+        RETURN FALSE;
+    END IF;
 
     RETURN chain_valid;
 END;
