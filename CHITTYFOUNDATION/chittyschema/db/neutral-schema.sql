@@ -1,6 +1,8 @@
--- ChittyChain Universal Data Framework - Neutral Schema
+-- ChittyChain Universal Data Framework - Neutral Schema v1.1
+-- @canon: chittycanon://gov/governance#core-types
 -- Neutralized and abstracted foundations for universal application
 -- Removes legal bias and creates platform-agnostic data structures
+-- Entity types: P (Person), L (Location), T (Thing), E (Event), A (Authority)
 
 -- =============================================================================
 -- CORE ENTITY ABSTRACTION LAYER
@@ -10,7 +12,9 @@
 CREATE TABLE entities (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     chitty_id TEXT UNIQUE NOT NULL,
-    entity_type TEXT NOT NULL, -- PEO, PLACE, PROP, EVNT, AUTH
+    tenant_id TEXT,  -- NULL = shared/global; set for tenant isolation (project-per-tenant or RLS)
+    -- @canon: chittycanon://gov/governance#core-types
+    entity_type TEXT NOT NULL, -- P (Person), L (Location), T (Thing), E (Event), A (Authority)
     entity_subtype TEXT,
     name TEXT NOT NULL,
     description TEXT,
@@ -39,7 +43,7 @@ CREATE TABLE entities (
     access_level TEXT DEFAULT 'standard',
     restrictions JSONB DEFAULT '{}',
 
-    CONSTRAINT valid_entity_type CHECK (entity_type IN ('PEO', 'PLACE', 'PROP', 'EVNT', 'AUTH')),
+    CONSTRAINT valid_entity_type CHECK (entity_type IN ('P', 'L', 'T', 'E', 'A')),
     CONSTRAINT valid_status CHECK (status IN ('active', 'inactive', 'archived', 'deleted')),
     CONSTRAINT valid_visibility CHECK (visibility IN ('public', 'restricted', 'private')),
     CONSTRAINT valid_verification CHECK (verification_status IN ('unverified', 'pending', 'verified', 'disputed', 'rejected'))
@@ -381,46 +385,58 @@ CREATE TABLE activity_log (
 );
 
 -- =============================================================================
--- NEUTRAL USER AND ACCESS FRAMEWORK
+-- NEUTRAL ACTOR AND ACCESS FRAMEWORK
 -- =============================================================================
 
--- Universal actors - neutral user/system representation
-CREATE TABLE actors (
+-- Actors ARE entities (type P = Person, including synthetic persons like AI/bots/services)
+-- @canon: chittycanon://gov/governance#core-types — Claude contexts are Person (P), Synthetic
+-- This view replaces the standalone actors table to eliminate entity/actor duplication.
+CREATE VIEW actors AS
+SELECT
+    e.id,
+    e.chitty_id,
+    e.entity_subtype AS actor_type,   -- HUMAN, SYSTEM, AI, BOT, SERVICE, ORGANIZATION
+    e.name AS display_name,
+    e.description,
+    e.metadata,
+    e.status,
+    e.created_at,
+    e.access_level,
+    e.restrictions
+FROM entities e
+WHERE e.entity_type = 'P'
+  AND e.status != 'deleted';
+
+-- Role-based access per context — what an actor can do within a specific context
+CREATE TABLE entity_roles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    chitty_id TEXT UNIQUE NOT NULL,
-    actor_type TEXT NOT NULL, -- human, system, organization, ai, etc.
-    actor_subtype TEXT,
-    display_name TEXT NOT NULL,
-
-    -- Identity information
-    identifier TEXT UNIQUE, -- username, email, system ID, etc.
-    external_ids JSONB DEFAULT '{}', -- Various external system IDs
-
-    -- Actor details
-    description TEXT,
-    contact_info JSONB DEFAULT '{}',
-    metadata JSONB DEFAULT '{}',
-
-    -- Status and lifecycle
-    status TEXT DEFAULT 'active',
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    last_active_at TIMESTAMPTZ,
-    deactivated_at TIMESTAMPTZ,
-
-    -- Access and permissions
-    access_level TEXT DEFAULT 'standard',
+    entity_id UUID NOT NULL REFERENCES entities(id),
+    context_id UUID REFERENCES contexts(id),  -- NULL = global role
+    role_name TEXT NOT NULL,                   -- owner, contributor, reviewer, observer
     permissions TEXT[] DEFAULT '{}',
-    restrictions JSONB DEFAULT '{}',
+    access_level TEXT DEFAULT 'standard',
+    granted_at TIMESTAMPTZ DEFAULT NOW(),
+    granted_by UUID,
+    expires_at TIMESTAMPTZ,
 
-    -- Security
-    authentication_methods TEXT[] DEFAULT '{}',
-    security_clearance TEXT,
-    risk_level TEXT DEFAULT 'standard',
-
-    CONSTRAINT valid_actor_type CHECK (actor_type IN ('HUMAN', 'SYSTEM', 'ORGANIZATION', 'AI', 'BOT', 'SERVICE')),
-    CONSTRAINT valid_status CHECK (status IN ('active', 'inactive', 'suspended', 'deleted')),
-    CONSTRAINT valid_access_level CHECK (access_level IN ('restricted', 'standard', 'elevated', 'administrative', 'system'))
+    CONSTRAINT valid_access_level CHECK (access_level IN ('restricted', 'standard', 'elevated', 'administrative', 'system')),
+    UNIQUE NULLS NOT DISTINCT (entity_id, context_id, role_name)
 );
+
+-- Enforce actor invariant: only Person (P) entities can hold roles
+CREATE OR REPLACE FUNCTION enforce_person_entity_role()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF (SELECT entity_type FROM entities WHERE id = NEW.entity_id) != 'P' THEN
+        RAISE EXCEPTION 'entity_roles: entity_id % is not a Person (P) entity', NEW.entity_id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_entity_roles_person_only
+    BEFORE INSERT OR UPDATE ON entity_roles
+    FOR EACH ROW EXECUTE FUNCTION enforce_person_entity_role();
 
 -- =============================================================================
 -- UNIVERSAL SCHEMA MANAGEMENT
@@ -445,6 +461,9 @@ CREATE TABLE schema_versions (
 INSERT INTO schema_versions (version_number, version_type, description, applied_by)
 VALUES ('1.0.0', 'major', 'Initial neutral schema foundation', NULL);
 
+INSERT INTO schema_versions (version_number, version_type, description, applied_by)
+VALUES ('1.1.0', 'minor', 'Canonical ontology alignment: P/L/T/E/A types, actors→entities view, verify_event_chain fix, context indexes, tenant_id, entity_roles', NULL);
+
 -- =============================================================================
 -- INDEXES FOR PERFORMANCE
 -- =============================================================================
@@ -455,6 +474,7 @@ CREATE INDEX idx_entities_status ON entities(status);
 CREATE INDEX idx_entities_chitty_id ON entities(chitty_id);
 CREATE INDEX idx_entities_created ON entities(created_at);
 CREATE INDEX idx_entities_classification ON entities(classification);
+CREATE INDEX idx_entities_tenant ON entities(tenant_id) WHERE tenant_id IS NOT NULL;
 
 -- Relationship indexes
 CREATE INDEX idx_relationships_source ON entity_relationships(source_entity_id);
@@ -475,6 +495,16 @@ CREATE INDEX idx_facts_source ON atomic_facts(source_information_id);
 CREATE INDEX idx_facts_type ON atomic_facts(fact_type);
 CREATE INDEX idx_facts_classification ON atomic_facts(classification);
 CREATE INDEX idx_facts_timestamp ON atomic_facts(fact_timestamp);
+
+-- Context join indexes
+CREATE INDEX idx_context_entities_context ON context_entities(context_id);
+CREATE INDEX idx_context_entities_entity ON context_entities(entity_id);
+CREATE INDEX idx_context_information_context ON context_information(context_id);
+CREATE INDEX idx_context_information_info ON context_information(information_id);
+
+-- Entity roles indexes
+CREATE INDEX idx_entity_roles_entity ON entity_roles(entity_id);
+CREATE INDEX idx_entity_roles_context ON entity_roles(context_id);
 
 -- Event store indexes
 CREATE INDEX idx_events_aggregate ON event_store(aggregate_id);
@@ -556,28 +586,44 @@ LEFT JOIN entities e ON af.subject_entity_id = e.id;
 -- =============================================================================
 
 -- Function to verify event chain integrity
+-- Each event's previous_hash must match the event_hash of the prior event in sequence.
 CREATE OR REPLACE FUNCTION verify_event_chain(p_aggregate_id UUID)
 RETURNS BOOLEAN AS $$
 DECLARE
-    current_hash TEXT;
-    previous_hash TEXT;
+    last_hash TEXT := NULL;
     event_record RECORD;
     chain_valid BOOLEAN := TRUE;
+    event_count INTEGER := 0;
 BEGIN
     FOR event_record IN
-        SELECT event_hash, previous_hash, event_data, timestamp
+        SELECT event_hash, previous_hash
         FROM event_store
         WHERE aggregate_id = p_aggregate_id
-        ORDER BY event_version
+        ORDER BY event_version ASC
     LOOP
-        -- Verify hash continuity
-        IF previous_hash IS NOT NULL AND previous_hash != current_hash THEN
-            chain_valid := FALSE;
-            EXIT;
+        event_count := event_count + 1;
+
+        -- First event must have NULL previous_hash (chain origin)
+        IF event_count = 1 THEN
+            IF event_record.previous_hash IS NOT NULL THEN
+                chain_valid := FALSE;
+                EXIT;
+            END IF;
+        ELSE
+            -- Subsequent events: previous_hash must match the prior event's hash
+            IF event_record.previous_hash IS DISTINCT FROM last_hash THEN
+                chain_valid := FALSE;
+                EXIT;
+            END IF;
         END IF;
 
-        current_hash := event_record.event_hash;
+        last_hash := event_record.event_hash;
     END LOOP;
+
+    -- No events = unverified (not valid)
+    IF event_count = 0 THEN
+        RETURN FALSE;
+    END IF;
 
     RETURN chain_valid;
 END;
