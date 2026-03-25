@@ -13,7 +13,7 @@ CHAIN_URL = "https://chain.chitty.cc"
 # KV for ephemeral reckoning cache (60s TTL)
 [[kv_namespaces]]
 binding = "SCORE_CACHE"
-id = "placeholder-create-via-wrangler-kv-namespace-create"
+id = "f51f5d6b13bb4824ad52ba474fcbf7ab"
 
 # Production routes
 [[routes]]
