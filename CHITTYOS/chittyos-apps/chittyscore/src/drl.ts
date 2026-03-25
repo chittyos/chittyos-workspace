@@ -23,8 +23,11 @@ const DECAY_HORIZON_DAYS = 730;
 /** Material mutation threshold — reckoning delta above this triggers anchor */
 const MATERIAL_MUTATION_THRESHOLD = 0.05;
 
-/** Cache TTL in seconds */
+/** Response cache TTL in seconds (short-lived, for dedup) */
 const CACHE_TTL = 60;
+
+/** Mutation baseline TTL in seconds (long-lived, prevents false material mutations) */
+const BASELINE_TTL = 86400;
 
 // --- Signal classification ---
 
@@ -108,6 +111,7 @@ function classifyEntry(entry: LedgerEntry): DRLSignal | null {
  */
 function applyDecay(weight: number, signalTime: string, now: number): number {
   const signalMs = new Date(signalTime).getTime();
+  if (Number.isNaN(signalMs)) return 0; // skip malformed timestamps
   const ageMs = now - signalMs;
   const ageDays = ageMs / (1000 * 60 * 60 * 24);
 
@@ -233,16 +237,16 @@ export async function reckon(chittyId: string, env: Env): Promise<DRLReckoning> 
   const timestamps = signals.map((s) => s.timestamp).sort();
   const decayHorizon = new Date(now - DECAY_HORIZON_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
-  // 8. Check for material mutation against cached reckoning
+  // 8. Check for material mutation against long-lived baseline (not the 60s response cache)
   let materialMutation = false;
   try {
-    const cachedRaw = await env.SCORE_CACHE.get(`reckoning:${chittyId}`);
-    if (cachedRaw) {
-      const cached = JSON.parse(cachedRaw) as DRLReckoning;
+    const baselineRaw = await env.SCORE_CACHE.get(`baseline:${chittyId}`);
+    if (baselineRaw) {
+      const baseline = JSON.parse(baselineRaw) as Pick<DRLReckoning, 'ty' | 'vy' | 'ry'>;
       const delta = Math.max(
-        Math.abs(ty - cached.ty),
-        Math.abs(vy - cached.vy),
-        Math.abs(ry - cached.ry),
+        Math.abs(ty - baseline.ty),
+        Math.abs(vy - baseline.vy),
+        Math.abs(ry - baseline.ry),
       );
       materialMutation = delta > MATERIAL_MUTATION_THRESHOLD;
     } else {
@@ -250,7 +254,7 @@ export async function reckon(chittyId: string, env: Env): Promise<DRLReckoning> 
       materialMutation = totalSignals > 0;
     }
   } catch {
-    // KV failure — treat as no cache
+    // KV failure — treat as no baseline
     materialMutation = totalSignals > 0;
   }
 
@@ -270,7 +274,7 @@ export async function reckon(chittyId: string, env: Env): Promise<DRLReckoning> 
     materialMutation,
   };
 
-  // 9. Cache the reckoning (short-lived, 60s TTL)
+  // 9. Cache the reckoning (short-lived, 60s TTL for response dedup)
   try {
     await env.SCORE_CACHE.put(
       `reckoning:${chittyId}`,
@@ -279,6 +283,17 @@ export async function reckon(chittyId: string, env: Env): Promise<DRLReckoning> 
     );
   } catch (err) {
     console.error("[DRL] Cache write failed:", err);
+  }
+
+  // 10. Update mutation baseline (long-lived, 24h TTL)
+  try {
+    await env.SCORE_CACHE.put(
+      `baseline:${chittyId}`,
+      JSON.stringify({ ty: reckoning.ty, vy: reckoning.vy, ry: reckoning.ry }),
+      { expirationTtl: BASELINE_TTL },
+    );
+  } catch (err) {
+    console.error("[DRL] Baseline write failed:", err);
   }
 
   return reckoning;

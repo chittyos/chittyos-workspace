@@ -16,6 +16,9 @@ import { anchorReckoning } from "./anchor";
 
 const app = new Hono<{ Bindings: Env }>();
 
+/** ChittyID format: VV-G-LLL-SSSS-T-YM-C-X (loose validation) */
+const CHITTY_ID_PATTERN = /^[A-Z0-9]{2,}-[A-Z0-9]+-[A-Z0-9]{3,}-[A-Z0-9]{4,}-[PLTEA]-/;
+
 app.use(
   "/*",
   cors({
@@ -24,6 +27,27 @@ app.use(
     allowHeaders: ["Content-Type", "Authorization", "X-Source-Service"],
   }),
 );
+
+/** Auth middleware for mutating routes — requires CHITTYLEDGER_TOKEN */
+app.use("/v1/reckon/*", async (c, next) => {
+  if (c.req.method !== "POST") return next();
+  const token = c.env.CHITTYLEDGER_TOKEN;
+  if (!token) return next(); // no token configured = open (dev)
+  const auth = c.req.header("Authorization");
+  if (!auth?.startsWith("Bearer ") || auth.slice(7) !== token) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  return next();
+});
+app.use("/v1/anchor/*", async (c, next) => {
+  const token = c.env.CHITTYLEDGER_TOKEN;
+  if (!token) return next();
+  const auth = c.req.header("Authorization");
+  if (!auth?.startsWith("Bearer ") || auth.slice(7) !== token) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  return next();
+});
 
 /** Health check */
 app.get("/health", (c) => {
@@ -60,8 +84,8 @@ app.get("/", (c) => {
  */
 app.post("/v1/reckon/:chittyId", async (c) => {
   const chittyId = c.req.param("chittyId");
-  if (!chittyId) {
-    return c.json({ error: "chittyId parameter required" }, 400);
+  if (!chittyId || !CHITTY_ID_PATTERN.test(chittyId)) {
+    return c.json({ error: "Invalid or missing chittyId" }, 400);
   }
 
   try {
@@ -70,6 +94,16 @@ app.post("/v1/reckon/:chittyId", async (c) => {
     // Auto-anchor on material mutation — surface failures explicitly
     if (reckoning.materialMutation) {
       const anchor = await anchorReckoning(reckoning, c.env);
+      // Persist anchored payload back to KV so GET returns anchor data
+      if (anchor.success) {
+        try {
+          await c.env.SCORE_CACHE.put(
+            `reckoning:${chittyId}`,
+            JSON.stringify(anchor.reckoning),
+            { expirationTtl: 60 },
+          );
+        } catch { /* best-effort */ }
+      }
       return c.json({
         ...anchor.reckoning,
         anchorError: anchor.success ? undefined : anchor.error,
@@ -94,8 +128,8 @@ app.post("/v1/reckon/:chittyId", async (c) => {
  */
 app.get("/v1/reckon/:chittyId", async (c) => {
   const chittyId = c.req.param("chittyId");
-  if (!chittyId) {
-    return c.json({ error: "chittyId parameter required" }, 400);
+  if (!chittyId || !CHITTY_ID_PATTERN.test(chittyId)) {
+    return c.json({ error: "Invalid or missing chittyId" }, 400);
   }
 
   try {
@@ -124,8 +158,8 @@ app.get("/v1/reckon/:chittyId", async (c) => {
  */
 app.post("/v1/anchor/:chittyId", async (c) => {
   const chittyId = c.req.param("chittyId");
-  if (!chittyId) {
-    return c.json({ error: "chittyId parameter required" }, 400);
+  if (!chittyId || !CHITTY_ID_PATTERN.test(chittyId)) {
+    return c.json({ error: "Invalid or missing chittyId" }, 400);
   }
 
   try {
@@ -137,6 +171,14 @@ app.post("/v1/anchor/:chittyId", async (c) => {
         502,
       );
     }
+    // Persist anchored payload back to KV
+    try {
+      await c.env.SCORE_CACHE.put(
+        `reckoning:${chittyId}`,
+        JSON.stringify(anchor.reckoning),
+        { expirationTtl: 60 },
+      );
+    } catch { /* best-effort */ }
     return c.json(anchor.reckoning, 200);
   } catch (err) {
     console.error(`[ChittyScore] Anchor failed for ${chittyId}:`, err);
