@@ -1,79 +1,81 @@
 /**
- * ChittyScore Type Definitions
- * Based on specification in AI_AGENT_SERVICE_SPECS.md
+ * ChittyScore DRL Types
+ * TY/VY/RY reckoning model per TY-VY-RY White Paper v2.1
+ *
+ * @canon: chittycanon://gov/governance#core-types
  */
 
-export type ScoreType =
-  | "creditworthiness"
-  | "reliability"
-  | "compliance"
-  | "activity"
-  | "composite";
-export type TimeRange = "30d" | "90d" | "1y" | "all";
-
-export interface ScoreRequest {
-  score_types: ScoreType[];
-  verification_report: any;
-  trust_network?: any;
-  entity_data: any;
-  time_range: TimeRange;
-  external_signals?: {
-    duns_score?: number;
-    domain_reputation?: number;
-    business_age_years?: number;
+/** DRL Reckoning result — assembled at query time, not stored */
+export interface DRLReckoning {
+  chittyId: string;
+  /** Identity Substrate (0-1) — TY precedes VY precedes RY */
+  ty: number;
+  /** Verified Yesterday / network experience (0-1) */
+  vy: number;
+  /** Reach and Authority / earned (0-1) */
+  ry: number;
+  /** Temporal envelope metadata */
+  tau: {
+    reckonedAt: string;
+    signalCount: number;
+    oldestSignal: string;
+    newestSignal: string;
+    /** ISO timestamp — signals older than this are fully decayed */
+    decayHorizon: string;
+  };
+  /** Confidence in reckoning (0-1), based on signal density */
+  confidence: number;
+  /** Whether this reckoning differs from last cached by >5% */
+  materialMutation: boolean;
+  /** ChittyChain anchor data, present if anchored */
+  anchored?: {
+    txHash: string;
+    blockNumber: number;
+    anchoredAt: string;
   };
 }
 
-export interface ScoreBreakdown {
-  verification: number; // 0-30
-  network: number; // 0-30
-  history: number; // 0-20
-  external: number; // 0-15
-  risk: number; // negative points
-}
-
-export interface ScoreDetails {
-  creditworthiness?: number; // 0-100
-  reliability?: number; // 0-100
-  compliance?: number; // 0-100
-  activity?: number; // 0-100
-  composite?: number; // 0-100
-}
-
-export interface ScoreFactors {
-  verification: {
-    documents_verified: boolean;
-    identity_confirmed: boolean;
-    cross_references_pass: boolean;
-  };
-  network: {
-    degree: number;
-    trust_score: number;
-    cluster_size: number;
-  };
-  history: {
-    entity_age_days: number;
-    transaction_count: number;
-    compliance_clean: boolean;
-  };
-  external: {
-    duns_score: number;
-    domain_reputation: number;
-    government_validated: boolean;
-  };
-}
-
-export interface ScoreResponse {
-  overall_score: number;
-  breakdown: ScoreBreakdown;
-  score_details: ScoreDetails;
-  factors: ScoreFactors;
+/** A signal extracted from a ledger entry for DRL reckoning */
+export interface DRLSignal {
+  /** Which dimension this signal contributes to */
+  dimension: "ty" | "vy" | "ry";
+  /** Raw weight before decay (0-1) */
+  weight: number;
+  /** ISO timestamp of the originating event */
   timestamp: string;
-  time_range: TimeRange;
+  /** ChittyID of the contributing actor (for credibility weighting) */
+  contributorId?: string;
+  /** The ledger entry type that produced this signal */
+  entryType: string;
 }
 
+/**
+ * Ledger entry shape — matches chitty_ledger_entries DB columns.
+ * ChittyLedger returns snake_case rows directly from Neon.
+ */
+export interface LedgerEntry {
+  id: string;
+  sequence_number: number;
+  timestamp: string;
+  entity_type: string;
+  entity_id: string;
+  action: string;
+  actor?: string;
+  actor_type?: string;
+  metadata?: Record<string, unknown>;
+  previous_hash?: string;
+  entry_hash?: string;
+  status?: string;
+  created_at: string;
+}
+
+/** Worker environment bindings */
 export interface Env {
   ENVIRONMENT: string;
   SERVICE_NAME: string;
   VERSION: string;
+  LEDGER_URL: string;
+  CHITTYLEDGER_TOKEN?: string;
+  CHAIN_URL: string;
+  SCORE_CACHE: KVNamespace;
 }

@@ -6,7 +6,14 @@ account_id = "0bc21e3a5a9de1a4cc843be9c3e98121"
 [vars]
 ENVIRONMENT = "production"
 SERVICE_NAME = "ChittyScore"
-VERSION = "1.0.0"
+VERSION = "2.0.0"
+LEDGER_URL = "https://ledger.chitty.cc"
+CHAIN_URL = "https://chain.chitty.cc"
+
+# KV for ephemeral reckoning cache (60s TTL)
+[[kv_namespaces]]
+binding = "SCORE_CACHE"
+id = "f51f5d6b13bb4824ad52ba474fcbf7ab"
 
 # Production routes
 [[routes]]
