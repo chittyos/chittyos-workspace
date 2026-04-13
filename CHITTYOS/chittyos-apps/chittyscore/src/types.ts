@@ -8,11 +8,11 @@
 /** DRL Reckoning result — assembled at query time, not stored */
 export interface DRLReckoning {
   chittyId: string;
-  /** Identity Substrate (0-1) — TY precedes VY precedes RY */
+  /** idenTitY (0-1) — TY precedes VY precedes RY */
   ty: number;
-  /** Verified Yesterday / network experience (0-1) */
+  /** connectiVitY / behavioral record and network experience (0-1) */
   vy: number;
-  /** Reach and Authority / earned (0-1) */
+  /** authoRitY / earned, revocable authority (0-1) */
   ry: number;
   /** Temporal envelope metadata */
   tau: {

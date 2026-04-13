@@ -6,7 +6,7 @@
  * of contributing nodes.
  *
  * Per the TY-VY-RY White Paper v2.1:
- * - TY (Identity Substrate) precedes VY precedes RY
+ * - TY (idenTitY) precedes VY precedes RY
  * - Temporal decay via Tau envelope (Mortality Discount Rate)
  * - Ledger Gravity: gaming attempts increase evidence density
  * - Material mutations (>5% delta) trigger ChittyChain anchor
@@ -31,7 +31,7 @@ const BASELINE_TTL = 86400;
 
 // --- Signal classification ---
 
-/** Entry types that contribute to TY (Identity Substrate) */
+/** Entry types that contribute to TY (idenTitY) */
 const TY_ENTRY_TYPES = new Set([
   "entity_creation",
   "identity_verification",
@@ -42,7 +42,7 @@ const TY_ENTRY_TYPES = new Set([
   "entity_registration",
 ]);
 
-/** Entry types that contribute to VY (Verified Yesterday / network experience) */
+/** Entry types that contribute to VY (connectiVitY) */
 const VY_ENTRY_TYPES = new Set([
   "attestation",
   "endorsement",
@@ -54,7 +54,7 @@ const VY_ENTRY_TYPES = new Set([
   "sibling_attestation",
 ]);
 
-/** Entry types that contribute to RY (Reach and Authority) */
+/** Entry types that contribute to RY (authoRitY) */
 const RY_ENTRY_TYPES = new Set([
   "scope_grant",
   "authority_delegation",
