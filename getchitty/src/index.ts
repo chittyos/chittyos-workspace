@@ -430,13 +430,13 @@ function generateWizardHTML(): string {
         } else {
           const res = await fetch('/recommend?need=' + encodeURIComponent(query));
           const data = await res.json();
-          results.innerHTML = data.recommendations.map((r, idx) => `
+          results.innerHTML = data.recommendations.map((r, idx) => \`
             <div class="result" style="animation-delay: ${r.confidence * 0.1}s">
               <h3><a href="/onboard/${r.service}">${r.service}</a></h3>
               <p>${r.reason}</p>
               <div class="meta">Match Confidence: ${Math.round(r.confidence * 100)}%</div>
             </div>
-          `).join('') || '<div class="result"><p>No matches found. Try browsing the <a href="/discover" style="color:var(--primary);">full directory</a>.</p></div>';
+          \`).join('') || '<div class="result"><p>No matches found. Try browsing the <a href="/discover" style="color:var(--primary);">full directory</a>.</p></div>';
         }
       } catch (err) {
         results.innerHTML = '<div class="result" style="border-color:#ef4444;"><p style="color:#ef4444;">Connection failed. Please try again.</p></div>';
