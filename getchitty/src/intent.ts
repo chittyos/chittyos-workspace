@@ -354,3 +354,82 @@ export async function handleIntent(intent: ClassifiedIntent): Promise<IntentResp
 
   return response
 }
+
+export interface GetChittyEnv extends ContextEnv {
+  OPENAI_API_KEY?: string;
+  CHITTY_KV?: KVNamespace;
+}
+
+export async function askChittyClaw(query: string, env: GetChittyEnv): Promise<IntentResponse> {
+  // If no key is configured, fallback to the dumb regex matcher
+  if (!env.OPENAI_API_KEY) {
+    const intent = classifyIntent(query);
+    return handleIntent(intent);
+  }
+
+  const allServices = await listServices();
+  const serviceContext = allServices.map(s => `- ${s.service_name} (${s.category}): ${s.status}`).join('\n');
+
+  const systemPrompt = `You are the ChittyOS Gateway intelligent router. Your job is to classify the user's intent and provide a helpful Markdown response.
+Available services:
+${serviceContext}
+
+Respond strictly with a JSON object matching this schema:
+{
+  "intent": {
+    "category": "ServiceInquiry" | "Installation" | "Status" | "Discovery" | "Comparison" | "HowTo" | "Troubleshooting" | "ListAll" | "Unknown",
+    "confidence": 0.95,
+    "services": ["chittyauth"],
+    "keywords": ["auth", "login"]
+  },
+  "answer": "Helpful markdown text answering the query. Be concise, friendly, and informative.",
+  "actions": [ { "label": "string", "url": "string" } ]
+}`;
+
+  try {
+    const res = await fetch("https://gateway.ai.cloudflare.com/v1/0bc21e3a5a9de1a4cc843be9c3e98121/chittyclaw/openai/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: query }
+        ],
+        response_format: { type: "json_object" }
+      })
+    });
+
+    if (!res.ok) {
+      throw new Error(`ChittyClaw error: ${await res.text()}`);
+    }
+
+    const data = await res.json() as any;
+    const parsed = JSON.parse(data.choices[0].message.content);
+
+    // Hydrate services
+    const hydratedServices: ServiceRecord[] = [];
+    for (const s of (parsed.intent?.services || [])) {
+      const record = await getService(s);
+      if (record) hydratedServices.push(record);
+    }
+
+    return {
+      intent: {
+        ...parsed.intent,
+        originalQuery: query
+      },
+      answer: parsed.answer || "I processed your request, but couldn't formulate an answer.",
+      actions: parsed.actions || [],
+      services: hydratedServices
+    };
+  } catch (err) {
+    console.error("AI Gateway failed, falling back to regex", err);
+    // Fallback on failure
+    const intent = classifyIntent(query);
+    return handleIntent(intent);
+  }
+}

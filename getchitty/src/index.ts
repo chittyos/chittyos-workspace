@@ -22,9 +22,9 @@ import {
   addContextHeaders
 } from '@chittyos/core'
 import type { ServiceRecord, DiscoveryResult, ContextEnv, ChittyContext } from '@chittyos/core'
-import { classifyIntent, handleIntent } from './intent'
+import { classifyIntent, handleIntent, askChittyClaw, GetChittyEnv } from './intent'
 
-interface Env extends ContextEnv {
+interface Env extends GetChittyEnv {
   CHITTY_KV?: KVNamespace
 }
 
@@ -635,8 +635,8 @@ export default {
         if (!query) {
           return Response.json({ error: 'Missing "q" parameter. Use: /ask?q=your+question' }, { status: 400 })
         }
-        const intent = classifyIntent(query)
-        const response = await handleIntent(intent)
+        const response = await askChittyClaw(query, env)
+        const intent = response.intent
 
         // Audit the NL query
         execCtx.waitUntil(logAudit(env, createAuditEvent(
@@ -672,8 +672,8 @@ export default {
           if (!query) {
             return Response.json({ error: 'Missing "query" or "q" in request body' }, { status: 400 })
           }
-          const intent = classifyIntent(query)
-          const response = await handleIntent(intent)
+          const response = await askChittyClaw(query, env)
+          const intent = response.intent
 
           // Audit the NL query
           execCtx.waitUntil(logAudit(env, createAuditEvent(
