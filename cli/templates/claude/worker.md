@@ -87,10 +87,10 @@ bucket_name = "xxx"
 
 ```bash
 # Deploy to production
-cf deploy --env production
+wrangler deploy --env production
 
 # Deploy to staging
-cf deploy --env staging
+wrangler deploy --env staging
 ```
 
 ## Health Check

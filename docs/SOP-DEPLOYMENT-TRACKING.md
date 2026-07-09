@@ -9,7 +9,7 @@ This SOP documents how to track ChittyOS gateway deployments in the Notion Servi
 ### 1. Notion Access
 ```bash
 # Via chittysecrets CLI (preferred)
-chittysecrets run --env-file=/Volumes/chitty/config/notion.env -- [command]
+op run --env-file=/Volumes/chitty/config/notion.env -- [command]
 
 # Or set token directly
 export NOTION_TOKEN="<your-token>"
@@ -131,7 +131,7 @@ pnpm --filter getchitty deploy      # Staging
 pnpm --filter getchitty deploy:prod # Production
 
 # Or use wrangler directly
-cd getchitty && npx cf deploy --env production
+cd getchitty && npx wrangler deploy --env production
 ```
 
 ### After Deployment

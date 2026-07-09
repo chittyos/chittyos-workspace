@@ -7,8 +7,8 @@
   "scripts": {
     "dev": "wrangler dev",
     "build": "tsc",
-    "deploy": "cf deploy",
-    "deploy:staging": "cf deploy --env staging",
+    "deploy": "wrangler deploy",
+    "deploy:staging": "wrangler deploy --env staging",
     "tail": "wrangler tail"
   },
   "dependencies": {

@@ -224,8 +224,8 @@ async function deployToCloudflare(environment: string, options: DeployOptions) {
 
     // Deploy to specified environment
     const deployCommand = environment === 'production'
-      ? 'cf deploy'
-      : `cf deploy --env ${environment}`;
+      ? 'wrangler deploy'
+      : `wrangler deploy --env ${environment}`;
 
     execSync(deployCommand, {
       stdio: 'inherit',

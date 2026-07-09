@@ -55,7 +55,7 @@ pnpm dev
 pnpm typecheck
 
 # Deploy to production
-cf deploy
+wrangler deploy
 
 # Apply migrations
 wrangler d1 migrations apply chitty-evidence-db --remote
