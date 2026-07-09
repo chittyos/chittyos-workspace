@@ -6,8 +6,8 @@
   "main": "src/index.ts",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
-    "deploy:staging": "wrangler deploy --env staging",
+    "deploy": "cf deploy",
+    "deploy:staging": "cf deploy --env staging",
     "db:migrate": "wrangler d1 execute chitty-evidence-db --file=./migrations/0001_initial.sql",
     "db:migrate:local": "wrangler d1 execute chitty-evidence-db --local --file=./migrations/0001_initial.sql",
     "db:studio": "wrangler d1 studio chitty-evidence-db",

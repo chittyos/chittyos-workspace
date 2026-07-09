@@ -8,7 +8,7 @@ pattern: wrangler\s+(deploy|publish)
 
 ## BLOCKED: Direct Deployment Not Allowed
 
-You attempted to run `wrangler deploy` directly.
+You attempted to run `cf deploy` directly.
 
 **All deployments must go through CI/CD:**
 
@@ -19,4 +19,4 @@ You attempted to run `wrangler deploy` directly.
 
 **You do NOT have permission to deploy directly.**
 
-If this is urgent, tell the user: "I need to deploy but am blocked. Please run `wrangler deploy` manually if this is intentional."
+If this is urgent, tell the user: "I need to deploy but am blocked. Please run `cf deploy` manually if this is intentional."
